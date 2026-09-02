@@ -19,7 +19,7 @@ What if the Rebels had given Luke Skywalker a markdown table of data instead of 
 </div>
 
 <div class="aspect-square overflow-hidden rounded-xl shadow-lg">
-  <video src="/videos/Death%20Star%20Briefing%20-%20compressed.webm" autoplay="true" loop="true" class="w-full h-full object-cover object-center" />
+  <video src="/videos/Death%20Star%20Briefing%20-%20compressed.webm" autoplay="true" muted="true" loop="true" class="w-full h-full object-cover object-center" />
 </div>
 
 </div>
@@ -379,7 +379,11 @@ The visualization was...
 
 # This Could Not Be My Contribution
 
-The visualization was janky, stuttered, and ran slowly. Why could something like a complicated game perform better?
+The visualization had several problems
+
+- Stutter
+- Janky motion
+- Controls can get locked
 
 ---
 
