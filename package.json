@@ -9,6 +9,7 @@
   "devDependencies": {
     "@slidev/cli": "latest",
     "@slidev/theme-default": "latest",
+    "three": "^0.185.1",
     "vue": "latest"
   }
 }
