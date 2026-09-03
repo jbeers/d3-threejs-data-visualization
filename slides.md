@@ -387,9 +387,11 @@ The visualization had several problems
 
 ---
 
-# Put More on the GPU
+# How Could I Fix This?
 
-What if the GPU could do more of this work?
+- What could accurately render the data?
+- What could improve performance and still look nice?
+- What could give us flexibility to improve in the future?
 
 ---
 class: three-scene-slide
@@ -629,31 +631,56 @@ onSlideLeave(disposeScene)
 
 Three.js makes WebGL easier, like React or Vue makes the DOM API easier.
 
+It is a JavaScript library that provides a convenient API for sending graphics data to the GPU for rendering.
+
+- Open source!
+- Big community!
+- Well documented!
+
 ---
 
 # Will Three.js Work with D3?
 
-The new renderer still needs to fit our existing D3-based application.
+YES!
 
-**We still need D3.** It handles projections and tracks objects in the visualization.
+We still need D3. D3 covers the important parts of calculating positions, managing the visualization's data, and other mathy technical things.
 
----
-
-# D3 Manages the Data
-
-D3 is also the backbone of loading and managing our data.
+D3 is almost always paired with SVG for presentation but there is no concrete dependency. We are free to use Three.js!
 
 ---
 
-# Requirements for Three.js
+# I Decided to Try It Out
 
-It must maintain accuracy, improve performance, and work with D3.
+It worked like a charm.
+
+Three.js was a (nearly) drop-in replacement for the SVG based renderer.
+
+The performance improvements were obvious right off the bat.
 
 ---
 
-# It Worked
+# TODO: Add demo of the new visualization
 
-Three.js was a drop-in replacement for the SVG renderer.
+
+TODO: ADD VIZUALIZATION
+
+---
+
+# No Longer Shamed
+
+Now that the visualization was changed from SVG to Three.js and the performance issues had been addressed I was far more confident in my contribution to the project.
+
+---
+
+# Lets Talk About How Three.js Works
+
+- How SVG renders vs Three.js
+- Easy optimiztions
+- Performance Checklist
+- Interactivity
+- Accessibility
+- Animation Tips
+- Advanced Three.js features
 
 ---
 class: svg-demo-slide three-render-demo-slide
@@ -1472,11 +1499,6 @@ Use a repeatable checklist to find and prioritize rendering improvements.
 
 Keep the visualization accessible through keyboard navigation.
 
----
-
-# No Longer Shamed
-
-The visualization is finally worthy of its NASA connection.
 
 ---
 
