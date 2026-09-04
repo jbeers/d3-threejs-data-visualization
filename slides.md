@@ -2248,11 +2248,440 @@ Keep the visualization accessible through keyboard navigation.
 Now that the fundamentals are in place, we can improve the experience.
 
 ---
+class: entry-exit-slide
+---
 
 # Animation: Entry and Exit
 
-Use entry and exit animations to explain when data appears or disappears.
+<div class="entry-exit-claim">
+  Make changes legible: <strong>new records grow in</strong>; removed records shrink out.
+</div>
 
+<div class="entry-exit-layout">
+  <div class="entry-exit-code-card">
+    <div class="entry-exit-card-eyebrow">D3 DATA + THREE.JS</div>
+    <h2>Enter · Exit</h2>
+    <pre class="entry-exit-code"><code><span class="entry-exit-code-muted">function</span> sync(data) {
+  <span class="entry-exit-code-muted">const</span> next = d3.index(data, d =&gt; d.id)
+  <span class="entry-exit-code-enter">// ENTER</span>
+  <span class="entry-exit-code-muted">for each</span> record missing from meshes:
+    mesh = createMesh(record)
+    scene.add(mesh)
+    animate(mesh.scale, 0 → 1)
+  <span class="entry-exit-code-exit">// EXIT</span>
+  <span class="entry-exit-code-muted">for each</span> mesh missing from next:
+    animate(mesh.scale, 1 → 0)
+    then scene.remove(mesh)
+}</code></pre>
+  </div>
+  <div class="entry-exit-scene-card">
+    <div class="entry-exit-scene-frame">
+      <div ref="sceneHost" class="entry-exit-scene-canvas" role="img" aria-label="Three.js scene showing data records entering and exiting"></div>
+      <div class="entry-exit-scene-title">THREE.JS SCENE</div>
+      <div class="entry-exit-scene-count"><strong>{{ recordCount }}</strong> {{ recordCount === 1 ? 'record' : 'records' }}</div>
+      <div class="entry-exit-scene-caption">new records grow in · removed records shrink out</div>
+    </div>
+  </div>
+</div>
+
+<div class="entry-exit-controls">
+  <label for="entry-exit-count">Records</label>
+  <span class="entry-exit-range-bound">0</span>
+  <input id="entry-exit-count" v-model.number="recordCount" type="range" min="0" max="5" step="1" :aria-label="'Number of records: ' + recordCount" @input="stopAutoCycle" />
+  <span class="entry-exit-range-bound">5</span>
+  <output for="entry-exit-count" aria-live="polite">{{ recordCount }}</output>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const recordCount = ref(0)
+const recordPositions = [
+  new THREE.Vector3(-1.45, -0.05, 0.2),
+  new THREE.Vector3(-0.85, -0.45, -0.3),
+  new THREE.Vector3(-0.28, 0.1, -0.75),
+  new THREE.Vector3(0.35, -0.4, -0.15),
+  new THREE.Vector3(0.92, 0.05, -0.55),
+]
+const recordScales = [1, 0.85, 1.08, 0.92, 0.78]
+const recordColors = [0x38bdf8, 0x818cf8, 0xf472b6, 0xfbbf24, 0x34d399]
+const recordStates = recordPositions.map((position, index) => ({
+  index,
+  mesh: undefined,
+  position,
+  status: 'empty',
+  targetScale: 0,
+  targetY: position.y,
+}))
+
+let renderer
+let scene
+let camera
+let recordGroup
+let geometry
+let materials
+let animationFrame
+let resizeObserver
+let cycleTimer
+let cycleDirection = 1
+let autoCycleEnabled = true
+
+function clearAutoCycle() {
+  if (cycleTimer) window.clearInterval(cycleTimer)
+  cycleTimer = undefined
+}
+
+function startAutoCycle() {
+  if (!autoCycleEnabled || cycleTimer) return
+
+  cycleTimer = window.setInterval(() => {
+    if (recordCount.value === 5) cycleDirection = -1
+    if (recordCount.value === 0) cycleDirection = 1
+    recordCount.value += cycleDirection
+  }, 3000)
+}
+
+function stopAutoCycle() {
+  autoCycleEnabled = false
+  clearAutoCycle()
+}
+
+function createSceneView() {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(0x081426)
+  view.fog = new THREE.Fog(0x081426, 4.5, 9)
+  view.add(new THREE.AmbientLight(0xffffff, 1.25))
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  view.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  view.add(rimLight)
+  return view
+}
+
+function syncRecords() {
+  if (!recordGroup || !materials) return
+
+  recordStates.forEach((state) => {
+    if (state.index < recordCount.value) {
+      if (!state.mesh) {
+        state.mesh = new THREE.Mesh(geometry, materials[state.index % materials.length])
+        state.mesh.position.copy(state.position).add(new THREE.Vector3(0, -0.65, 0))
+        state.mesh.scale.setScalar(0)
+        recordGroup.add(state.mesh)
+      }
+      state.status = 'active'
+      state.targetScale = recordScales[state.index]
+      state.targetY = state.position.y
+      return
+    }
+
+    if (state.mesh) {
+      state.status = 'exiting'
+      state.targetScale = 0
+      state.targetY = state.position.y - 0.65
+    }
+  })
+}
+
+function resize() {
+  if (!renderer || !camera || !sceneHost.value) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+}
+
+function animate() {
+  if (!renderer || !scene || !camera || !recordGroup) return
+
+  animationFrame = requestAnimationFrame(animate)
+  recordGroup.rotation.y += 0.003
+  recordStates.forEach((state) => {
+    if (!state.mesh) return
+
+    const mesh = state.mesh
+    mesh.scale.setScalar(mesh.scale.x + (state.targetScale - mesh.scale.x) * 0.12)
+    mesh.position.y += (state.targetY - mesh.position.y) * 0.12
+    mesh.rotation.x += 0.008
+    mesh.rotation.y += 0.012
+
+    if (state.status === 'exiting' && mesh.scale.x < 0.015) {
+      mesh.removeFromParent()
+      state.mesh = undefined
+      state.status = 'empty'
+    }
+  })
+  renderer.render(scene, camera)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  scene = createSceneView()
+  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0.15, 5.4)
+  camera.lookAt(0, -0.28, 0)
+  recordGroup = new THREE.Group()
+  scene.add(recordGroup)
+
+  geometry = new THREE.IcosahedronGeometry(0.34, 2)
+  materials = recordColors.map((color) => new THREE.MeshStandardMaterial({
+    color,
+    metalness: 0.15,
+    roughness: 0.35,
+  }))
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  syncRecords()
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  clearAutoCycle()
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  recordStates.forEach((state) => {
+    state.mesh?.removeFromParent()
+    state.mesh = undefined
+    state.status = 'empty'
+  })
+  materials?.forEach((material) => material.dispose())
+  geometry?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  renderer = scene = camera = recordGroup = geometry = materials = animationFrame = resizeObserver = undefined
+}
+
+watch(recordCount, syncRecords)
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+  startAutoCycle()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.entry-exit-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.entry-exit-slide h1 {
+  color: #0f172a;
+}
+
+.entry-exit-claim {
+  color: #334155;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.entry-exit-claim strong:first-child {
+  color: #16a34a;
+}
+
+.entry-exit-claim strong:last-child {
+  color: #ea580c;
+}
+
+.entry-exit-layout {
+  display: grid;
+  flex: 1;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  margin-top: 1rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.entry-exit-code-card,
+.entry-exit-scene-card {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  min-height: 18rem;
+  padding: 1rem 1.1rem 0.85rem;
+}
+
+.entry-exit-code-card {
+  border-top: 4px solid #64748b;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-exit-scene-card {
+  border-top: 4px solid #2563eb;
+  display: flex;
+  min-width: 0;
+}
+
+.entry-exit-card-eyebrow,
+.entry-exit-scene-title {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.entry-exit-code-card h2 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.entry-exit-code {
+  background: #0f172a;
+  border-radius: 0.7rem;
+  color: #e2e8f0;
+  flex: 1;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.67rem;
+  line-height: 1.45;
+  margin: 0.8rem 0 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.75rem 0.8rem;
+  white-space: pre;
+}
+
+.entry-exit-code-muted {
+  color: #93c5fd;
+}
+
+.entry-exit-code-string {
+  color: #a7f3d0;
+}
+
+.entry-exit-code-enter {
+  color: #86efac;
+}
+
+.entry-exit-code-exit {
+  color: #fdba74;
+}
+
+.entry-exit-scene-frame {
+  background: #081426;
+  border-radius: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.entry-exit-scene-canvas,
+.entry-exit-scene-canvas canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.entry-exit-scene-title {
+  color: #cbd5e1;
+  left: 1rem;
+  position: absolute;
+  top: 0.9rem;
+}
+
+.entry-exit-scene-count {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.65rem;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  padding: 0.45rem 0.6rem;
+  position: absolute;
+  right: 1rem;
+  top: 0.75rem;
+}
+
+.entry-exit-scene-count strong {
+  color: #93c5fd;
+  font-size: 1.2rem;
+  margin-right: 0.2rem;
+}
+
+.entry-exit-scene-caption {
+  bottom: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  left: 1rem;
+  position: absolute;
+}
+
+.entry-exit-controls {
+  align-items: center;
+  color: #475569;
+  display: flex;
+  gap: 0.55rem;
+  margin: 0.65rem auto 0.1rem;
+  width: min(100%, 35rem);
+}
+
+.entry-exit-controls label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.entry-exit-controls input {
+  accent-color: #2563eb;
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-exit-range-bound {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.entry-exit-controls output {
+  background: #dbeafe;
+  border-radius: 0.4rem;
+  color: #1d4ed8;
+  font-size: 0.85rem;
+  font-weight: 800;
+  min-width: 1.5rem;
+  padding: 0.25rem 0.4rem;
+  text-align: center;
+}
+</style>
+
+<!--
+- D3 supplies data and keys; Three.js owns the Mesh objects and scene lifecycle.
+- Enter and exit are lifecycle ideas here—not DOM/SVG selections.
+- New records start at zero size and transition into their target size.
+- Removed records shrink away first, then are removed from the scene.
+- The slider automatically cycles from zero to five and back every three seconds.
+- Adjusting it manually stops the cycle so you can hold on any state.
+- At zero, every mesh exits and is cleaned up.
+- The slider is illustrative: the important idea is the animated lifecycle, not a performance benchmark.
+-->
 ---
 
 # Animation: Physical Properties
