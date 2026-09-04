@@ -1932,10 +1932,301 @@ onSlideLeave(disposeScene)
 -->
 
 ---
+class: buffer-geometry-slide
+---
 
 # Optimization Two: BufferGeometry
 
-Unlike parsed SVG path strings, BufferGeometry values can be sent directly in a single draw call.
+<div class="buffer-claim">
+  When animated, SVG sends <strong>path text</strong>; BufferGeometry sends <strong>vertex numbers</strong>.
+</div>
+
+<div class="buffer-comparison">
+  <div class="buffer-lane buffer-lane--svg">
+    <div class="buffer-lane-heading">
+      <div class="buffer-eyebrow">SVG PATH ANIMATION</div>
+      <h2>D3 → DOM → parser</h2>
+    </div>
+    <div class="buffer-flow">
+      <div class="buffer-step"><strong>D3</strong><small>coordinates</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--string"><code>d="M…"</code><small>serialize text</small></div><span class="buffer-arrow">→</span><div class="buffer-step"><strong>Browser</strong><small>parse + paint</small></div>
+    </div>
+    <div class="buffer-plot">
+      <div class="buffer-plot-label">smooth path rebuilt from a string</div>
+      <svg viewBox="0 0 264 100" role="img" aria-label="A smooth SVG path">
+        <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
+        <path class="buffer-svg-path" d="M12 75 C28 32 49 65 68 38 S102 68 122 24 S164 58 188 30 S224 64 252 18" />
+      </svg>
+    </div>
+    <div class="buffer-cost buffer-cost--svg"><strong>N</strong> path strings parsed per frame</div>
+  </div>
+  <div class="buffer-lane buffer-lane--buffer">
+    <div class="buffer-lane-heading">
+      <div class="buffer-eyebrow">BUFFERGEOMETRY</div>
+      <h2>Numbers → GPU buffer</h2>
+    </div>
+    <div class="buffer-flow">
+      <div class="buffer-step"><strong>D3</strong><small>numbers</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--array"><code>Float32Array</code><small>position data</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--geometry"><strong>BufferGeometry</strong><small>one mesh</small></div>
+    </div>
+    <div class="buffer-plot">
+      <div class="buffer-plot-label">same shape, stored as vertices</div>
+      <svg viewBox="0 0 264 100" role="img" aria-label="A line made from numeric vertices">
+        <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
+        <polyline class="buffer-buffer-path" points="12,75 35,48 58,64 81,36 105,66 129,26 153,55 178,31 204,58 230,21 252,32" />
+        <g class="buffer-vertices"><circle cx="12" cy="75" r="3" /><circle cx="35" cy="48" r="3" /><circle cx="58" cy="64" r="3" /><circle cx="81" cy="36" r="3" /><circle cx="105" cy="66" r="3" /><circle cx="129" cy="26" r="3" /><circle cx="153" cy="55" r="3" /><circle cx="178" cy="31" r="3" /><circle cx="204" cy="58" r="3" /><circle cx="230" cy="21" r="3" /><circle cx="252" cy="32" r="3" /></g>
+      </svg>
+    </div>
+    <div class="buffer-cost buffer-cost--buffer"><strong>1</strong> mesh → <strong>1</strong> WebGL draw call</div>
+  </div>
+</div>
+
+<div class="buffer-summary"><strong>Same pixels.</strong> Fewer text parses. One geometry means one CPU draw submission.</div>
+
+<style>
+.buffer-geometry-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.buffer-geometry-slide h1 {
+  color: #0f172a;
+}
+
+.buffer-claim {
+  color: #334155;
+  font-size: 1.55rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.buffer-claim strong:first-child {
+  color: #ea580c;
+}
+
+.buffer-claim strong:last-child {
+  color: #2563eb;
+}
+
+.buffer-comparison {
+  display: grid;
+  flex: 1;
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 1rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.buffer-lane {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 18rem;
+  padding: 1rem 1.1rem 0.85rem;
+}
+
+.buffer-lane--svg {
+  border-top: 4px solid #f97316;
+}
+
+.buffer-lane--buffer {
+  border-top: 4px solid #2563eb;
+}
+
+.buffer-lane-heading {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+}
+
+.buffer-eyebrow {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.buffer-lane h2 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.buffer-flow {
+  align-items: stretch;
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  min-height: 3.8rem;
+}
+
+.buffer-step {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.55rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.4rem 0.3rem;
+  text-align: center;
+}
+
+.buffer-step strong,
+.buffer-step code {
+  color: #1e293b;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.buffer-step code {
+  background: transparent;
+  font-size: 0.68rem;
+  overflow: hidden;
+  padding: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.buffer-step small {
+  color: #64748b;
+  font-size: 0.58rem;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+}
+
+.buffer-step--string {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.buffer-step--string code {
+  color: #c2410c;
+}
+
+.buffer-step--array,
+.buffer-step--geometry {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.buffer-step--array code,
+.buffer-step--geometry strong {
+  color: #1d4ed8;
+}
+
+.buffer-arrow {
+  align-self: center;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.buffer-plot {
+  background: #0f172a;
+  border-radius: 0.75rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-top: 0.85rem;
+  min-height: 0;
+  padding: 0.55rem 0.7rem 0.65rem;
+}
+
+.buffer-plot-label {
+  color: #94a3b8;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.buffer-plot svg {
+  display: block;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.buffer-grid-line {
+  fill: none;
+  stroke: #334155;
+  stroke-width: 0.7;
+}
+
+.buffer-svg-path {
+  fill: none;
+  stroke: #fb923c;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.buffer-buffer-path {
+  fill: none;
+  stroke: #60a5fa;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.buffer-vertices circle {
+  fill: #bfdbfe;
+  stroke: #2563eb;
+  stroke-width: 1;
+}
+
+.buffer-cost {
+  align-items: baseline;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+  padding-top: 0.55rem;
+}
+
+.buffer-cost strong {
+  font-size: 1.3rem;
+}
+
+.buffer-cost--svg strong {
+  color: #ea580c;
+}
+
+.buffer-cost--buffer strong {
+  color: #16a34a;
+}
+
+.buffer-summary {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0.7rem auto 0.15rem;
+  text-align: center;
+}
+
+.buffer-summary strong {
+  color: #334155;
+}
+</style>
+
+<!--
+- When animated D3 code updates `d`, it serializes numeric coordinates into a string.
+- The browser receives the DOM attribute, parses the path, and rebuilds its rendering data.
+- BufferGeometry stores vertex positions in typed arrays/BufferAttributes instead of path text.
+- BufferGeometry alone does not batch separate Meshes: consolidate vertices into one geometry/material/mesh for one draw call.
+- Groups or multiple materials add draw calls.
+- The GPU still processes the vertices; the win is less JS/DOM/parser work and fewer CPU draw submissions.
+- This is an optimization for many related vertices, not a reason to replace every small or independent SVG path.
+-->
 
 ---
 
