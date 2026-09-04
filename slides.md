@@ -3123,10 +3123,396 @@ onSlideLeave(disposeScene)
 -->
 
 ---
+class: staggering-slide
+---
 
 # Animation: Staggering
 
-Stagger repeated animations to make large changes easier to follow.
+<div class="stagger-claim">
+  Same records. Same animation. <strong>Only the start time changes.</strong>
+</div>
+
+<div class="stagger-stage">
+  <div ref="sceneHost" class="stagger-scene" role="img" aria-label="Comparison of simultaneous and staggered Three.js entry animations"></div>
+  <div class="stagger-divider" aria-hidden="true"></div>
+  <section class="stagger-label stagger-label--left">
+    <div class="stagger-eyebrow">ALL AT ONCE</div>
+    <h2>Simultaneous entry</h2>
+    <div class="stagger-delay stagger-delay--left">delay = 0 ms</div>
+  </section>
+  <section class="stagger-label stagger-label--right">
+    <div class="stagger-eyebrow">STAGGERED</div>
+    <h2>One after another</h2>
+    <div class="stagger-delay stagger-delay--right">delay = index × 30 ms</div>
+  </section>
+  <div class="stagger-record-count stagger-record-count--left">12 records</div>
+  <div class="stagger-record-count stagger-record-count--right">12 records</div>
+</div>
+
+<button class="stagger-load-button" type="button" @click="loadData">
+  {{ hasLoaded ? 'Replay loading' : 'Simulate loading' }}
+</button>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const hasLoaded = ref(false)
+const entryDuration = 550
+const staggerDelay = 30
+const pointPositions = Array.from({ length: 12 }, (_, index) => new THREE.Vector3(
+  (index % 4 - 1.5) * 0.82,
+  (1 - Math.floor(index / 4)) * 0.55 - 0.3,
+  -((index * 7) % 3) * 0.12,
+))
+const pointScales = [1, 0.82, 1.08, 0.9, 0.76, 1.02, 0.86, 1.1, 0.8, 0.94, 0.74, 1]
+const pointColors = [0x38bdf8, 0x818cf8, 0xf472b6, 0xfbbf24, 0x34d399]
+
+let renderer
+let leftScene
+let rightScene
+let leftCamera
+let rightCamera
+let leftGroup
+let rightGroup
+let geometry
+let materials
+let grids = []
+let leftStates = []
+let rightStates = []
+let animationFrame
+let resizeObserver
+
+function createView(background) {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(background)
+  view.fog = new THREE.Fog(background, 4.5, 8)
+  view.add(new THREE.AmbientLight(0xffffff, 1.25))
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  view.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  view.add(rimLight)
+
+  const grid = new THREE.GridHelper(4.2, 8, 0x334155, 0x1e293b)
+  grid.rotation.x = Math.PI / 2
+  grid.position.z = -1
+  grid.material.transparent = true
+  grid.material.opacity = 0.4
+  view.add(grid)
+  grids.push(grid)
+  return view
+}
+
+function createCamera() {
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0, 4.6)
+  camera.lookAt(0, 0, 0)
+  return camera
+}
+
+function createPoints(group) {
+  return pointPositions.map((position, index) => {
+    const mesh = new THREE.Mesh(geometry, materials[index])
+    mesh.position.copy(position)
+    mesh.position.y -= 0.35
+    mesh.scale.setScalar(0)
+    group.add(mesh)
+    return { mesh, position, startAt: undefined, targetScale: pointScales[index] }
+  })
+}
+
+function scheduleEntries(states, startedAt, delay) {
+  states.forEach((state, index) => {
+    state.mesh.position.copy(state.position)
+    state.mesh.position.y -= 0.35
+    state.mesh.scale.setScalar(0)
+    state.startAt = startedAt + index * delay
+  })
+}
+
+function loadData() {
+  if (!leftStates.length || !rightStates.length) return
+
+  hasLoaded.value = true
+  const startedAt = performance.now()
+  scheduleEntries(leftStates, startedAt, 0)
+  scheduleEntries(rightStates, startedAt, staggerDelay)
+}
+
+function updateEntries(states, time) {
+  states.forEach((state) => {
+    state.mesh.rotation.x += 0.006
+    state.mesh.rotation.y += 0.009
+    if (state.startAt === undefined || time < state.startAt) return
+
+    const progress = THREE.MathUtils.clamp((time - state.startAt) / entryDuration, 0, 1)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    state.mesh.scale.setScalar(state.targetScale * eased)
+    state.mesh.position.y = state.position.y - 0.35 * (1 - eased)
+    if (progress === 1) state.startAt = undefined
+  })
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  const leftWidth = Math.floor(width / 2)
+  leftCamera.aspect = leftWidth / height
+  rightCamera.aspect = (width - leftWidth) / height
+  leftCamera.updateProjectionMatrix()
+  rightCamera.updateProjectionMatrix()
+}
+
+function animate(time = performance.now()) {
+  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
+
+  animationFrame = requestAnimationFrame(animate)
+  updateEntries(leftStates, time)
+  updateEntries(rightStates, time)
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  const leftWidth = Math.floor(width / 2)
+  renderer.setScissorTest(true)
+  renderer.setViewport(0, 0, leftWidth, height)
+  renderer.setScissor(0, 0, leftWidth, height)
+  renderer.render(leftScene, leftCamera)
+  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
+  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
+  renderer.render(rightScene, rightCamera)
+  renderer.setScissorTest(false)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  leftScene = createView(0x081426)
+  rightScene = createView(0x0a1d2d)
+  leftCamera = createCamera()
+  rightCamera = createCamera()
+  leftGroup = new THREE.Group()
+  rightGroup = new THREE.Group()
+  leftScene.add(leftGroup)
+  rightScene.add(rightGroup)
+
+  geometry = new THREE.DodecahedronGeometry(0.24)
+  materials = pointPositions.map((_, index) => new THREE.MeshStandardMaterial({
+    color: pointColors[index % pointColors.length],
+    metalness: 0.15,
+    roughness: 0.35,
+  }))
+  leftStates = createPoints(leftGroup)
+  rightStates = createPoints(rightGroup)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  grids.forEach((grid) => {
+    grid.geometry.dispose()
+    grid.material.dispose()
+  })
+  geometry?.dispose()
+  materials?.forEach((material) => material.dispose())
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  grids = []
+  leftStates = []
+  rightStates = []
+  hasLoaded.value = false
+  renderer = leftScene = rightScene = leftCamera = rightCamera = leftGroup = rightGroup = geometry = materials = animationFrame = resizeObserver = undefined
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.staggering-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.staggering-slide h1 {
+  color: #0f172a;
+}
+
+.stagger-claim {
+  color: #334155;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.stagger-claim strong {
+  color: #2563eb;
+}
+
+.stagger-stage {
+  background: #081426;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  flex: 1;
+  margin-top: 1rem;
+  min-height: 18rem;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.stagger-scene,
+.stagger-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.stagger-divider {
+  background: rgba(148, 163, 184, 0.3);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 1;
+}
+
+.stagger-label {
+  color: #f8fafc;
+  pointer-events: none;
+  position: absolute;
+  top: 1rem;
+  width: calc(50% - 2.5rem);
+  z-index: 2;
+}
+
+.stagger-label--left {
+  left: 1.25rem;
+}
+
+.stagger-label--right {
+  left: calc(50% + 1.25rem);
+}
+
+.stagger-eyebrow {
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.stagger-label h2 {
+  color: #fff;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.stagger-delay {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  display: inline-block;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  padding: 0.3rem 0.45rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.stagger-delay--left {
+  color: #fdba74;
+}
+
+.stagger-delay--right {
+  color: #93c5fd;
+}
+
+.stagger-record-count {
+  bottom: 0.8rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  position: absolute;
+  z-index: 2;
+}
+
+.stagger-record-count--left {
+  left: 1.25rem;
+}
+
+.stagger-record-count--right {
+  left: calc(50% + 1.25rem);
+}
+
+.stagger-load-button {
+  align-items: center;
+  align-self: center;
+  background: #2563eb;
+  border: 0;
+  border-radius: 0.65rem;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.stagger-load-button:hover {
+  background: #1d4ed8;
+}
+
+.stagger-load-button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+</style>
+
+<!--
+- The button resets both scenes and loads the same twelve records.
+- Every marker uses the same 550 ms entry animation.
+- The left starts every marker at the same time.
+- The right starts each marker 30 ms after the previous marker.
+- Staggering does not make rendering faster; it controls pacing and directs attention.
+- Sort records into a meaningful order before staggering them.
+- Cap the total delay or animate in batches for large datasets.
+- Respect reduced-motion preferences by shortening or removing delays.
+-->
 
 ---
 
