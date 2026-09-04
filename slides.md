@@ -5642,10 +5642,599 @@ onSlideLeave(disposeScene)
 -->
 
 ---
+class: particles-slide
+---
 
 # Three.js Tool: Points and Particles
 
-Points make large particle systems practical to render.
+<div class="particles-claim">
+  Up to 100,000 moving particles. <strong>One geometry. One particle draw call.</strong>
+</div>
+
+<div class="particles-stage">
+  <aside class="particles-explainer">
+    <div class="particles-kicker">GPU PARTICLE SYSTEM</div>
+    <h2>No mesh per particle</h2>
+    <div class="particles-code">
+      <span><b>const</b> cloud = <b>new</b> THREE.Points(</span>
+      <span class="particles-code-indent">geometry, particleMaterial</span>
+      <span>)</span>
+      <span>geometry.setDrawRange(<i>0</i>, count)</span>
+    </div>
+    <div class="particles-fact">
+      <strong>{{ particleCount.toLocaleString() }}</strong>
+      <span>active vertices</span>
+    </div>
+    <div class="particles-fact">
+      <strong>1</strong>
+      <span>particle draw call</span>
+    </div>
+    <div class="particles-fact">
+      <strong>1</strong>
+      <span>time uniform updated by the CPU</span>
+    </div>
+  </aside>
+  <section
+    class="particles-demo"
+    @pointermove="handlePointerMove"
+    @pointerleave="resetPointer"
+  >
+    <div ref="sceneHost" class="particles-scene" role="img" aria-label="A companion star feeding GPU particles into a swirling black hole accretion disk"></div>
+    <div class="particles-demo-heading">
+      <div>
+        <span>STYLIZED ACCRETION FLOW</span>
+        Companion star → stream → black hole
+      </div>
+      <div class="particles-demo-badges">
+        <span>{{ particleCount.toLocaleString() }} points</span>
+        <strong>1 particle draw</strong>
+      </div>
+    </div>
+    <div class="particles-pointer-hint">Move the pointer to tilt the system</div>
+    <label class="particles-control" for="particle-count">
+      <span>1K</span>
+      <input
+        id="particle-count"
+        v-model.number="particleCount"
+        type="range"
+        min="1000"
+        max="100000"
+        step="1000"
+      />
+      <span>100K</span>
+      <output>{{ particleCount.toLocaleString() }} particles</output>
+    </label>
+  </section>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const particleCount = ref(50000)
+const maxParticleCount = 100000
+
+const particleVertexShader = `
+  attribute float aPhase;
+  uniform float uPixelRatio;
+  uniform float uTime;
+  varying float vAlpha;
+  varying vec3 vColor;
+
+  const float PI = 3.14159265;
+  const float TWO_PI = 6.2831853;
+
+  vec3 pointInSphere(vec3 seed, float radius) {
+    float longitude = seed.x * TWO_PI;
+    float vertical = seed.y * 2.0 - 1.0;
+    float horizontal = sqrt(max(0.0, 1.0 - vertical * vertical));
+    float distanceFromCenter = radius * pow(seed.z, 1.0 / 3.0);
+    return vec3(
+      cos(longitude) * horizontal,
+      vertical,
+      sin(longitude) * horizontal
+    ) * distanceFromCenter;
+  }
+
+  void main() {
+    vec3 seed = position;
+    float life = fract(aPhase + uTime * (0.033 + seed.x * 0.012));
+    float progress = life;
+
+    float diskFormation = smoothstep(0.18, 0.42, progress);
+    float sourceInfluence = 1.0 - smoothstep(0.0, 0.30, progress);
+    float inwardProgress = 0.24 * progress + 0.76 * pow(progress, 1.55);
+    float radius = mix(3.15, 0.30, inwardProgress);
+    radius += (seed.z - 0.5) * 0.22
+      * (1.0 - progress) * diskFormation;
+
+    float turns = 0.04 * progress + 5.46 * progress * progress * progress;
+    float speedVariation = mix(
+      1.0,
+      mix(0.92, 1.08, seed.x),
+      smoothstep(0.24, 0.55, progress)
+    );
+    float angle = PI + TWO_PI * turns * speedVariation;
+
+    vec3 particlePosition = vec3(
+      cos(angle) * radius,
+      (seed.y - 0.5) * 0.20 * (1.0 - progress) * diskFormation,
+      sin(angle) * radius
+    );
+    particlePosition += pointInSphere(seed, 0.46) * sourceInfluence;
+    particlePosition.y += 0.30 * sourceInfluence;
+
+    vec3 color = mix(
+      vec3(1.0, 0.78, 0.28),
+      vec3(1.0, 0.28, 0.03),
+      smoothstep(0.04, 0.34, progress)
+    );
+    vColor = mix(
+      color,
+      vec3(1.0, 0.96, 0.72),
+      smoothstep(0.62, 1.0, progress)
+    );
+
+    float sourceOpacity = mix(0.70, 1.0, smoothstep(0.14, 0.40, progress));
+    vAlpha = sourceOpacity * smoothstep(0.0, 0.025, life)
+      * (1.0 - smoothstep(0.94, 1.0, life));
+    vec4 viewPosition = modelViewMatrix * vec4(particlePosition, 1.0);
+    gl_PointSize = mix(2.0, 4.5, seed.x) * uPixelRatio
+      * (6.0 / max(1.0, -viewPosition.z));
+    gl_Position = projectionMatrix * viewPosition;
+  }
+`
+
+const particleFragmentShader = `
+  uniform float uOpacity;
+  varying float vAlpha;
+  varying vec3 vColor;
+
+  void main() {
+    float distanceToCenter = length(gl_PointCoord - vec2(0.5));
+    float circle = 1.0 - smoothstep(0.18, 0.5, distanceToCenter);
+    float alpha = circle * vAlpha * uOpacity;
+    if (alpha < 0.01) discard;
+    gl_FragColor = vec4(vColor, alpha);
+  }
+`
+
+let renderer
+let scene
+let camera
+let systemGroup
+let particleGeometry
+let particleMaterial
+let points
+let starGeometry
+let starMaterial
+let blackHoleGeometry
+let blackHoleMaterial
+let ringGeometry
+let ringMaterial
+let glowTexture
+let glowMaterial
+let animationFrame
+let resizeObserver
+let startedAt
+let reduceMotion = false
+let targetRotationX = 0
+let targetRotationY = 0
+
+function randomGenerator(seed) {
+  let state = seed >>> 0
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0
+    return state / 4294967296
+  }
+}
+
+function createGlowTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = 128
+  const context = canvas.getContext('2d')
+  const glow = context.createRadialGradient(64, 64, 2, 64, 64, 64)
+  glow.addColorStop(0, 'rgba(255, 255, 235, 1)')
+  glow.addColorStop(0.18, 'rgba(251, 191, 36, 0.95)')
+  glow.addColorStop(0.5, 'rgba(249, 115, 22, 0.28)')
+  glow.addColorStop(1, 'rgba(249, 115, 22, 0)')
+  context.fillStyle = glow
+  context.fillRect(0, 0, 128, 128)
+  return new THREE.CanvasTexture(canvas)
+}
+
+function createParticleGeometry() {
+  const random = randomGenerator(20250614)
+  const positions = new Float32Array(maxParticleCount * 3)
+  const phases = new Float32Array(maxParticleCount)
+
+  for (let index = 0; index < maxParticleCount; index++) {
+    const offset = index * 3
+    positions[offset] = random()
+    positions[offset + 1] = random()
+    positions[offset + 2] = random()
+    phases[index] = random()
+  }
+
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  geometry.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1))
+  geometry.setDrawRange(0, particleCount.value)
+  return geometry
+}
+
+function particleOpacity(count) {
+  return Math.min(0.85, 0.45 * Math.sqrt(50000 / count))
+}
+
+function applyParticleCount(count) {
+  particleGeometry?.setDrawRange(0, count)
+  if (particleMaterial) particleMaterial.uniforms.uOpacity.value = particleOpacity(count)
+}
+
+function handlePointerMove(event) {
+  const bounds = event.currentTarget.getBoundingClientRect()
+  const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
+  const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1
+  targetRotationY = x * 0.22
+  targetRotationX = -y * 0.12
+}
+
+function resetPointer() {
+  targetRotationX = 0
+  targetRotationY = 0
+}
+
+function resize() {
+  if (!renderer || !camera || !sceneHost.value || !particleMaterial) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+  particleMaterial.uniforms.uPixelRatio.value = renderer.getPixelRatio()
+}
+
+function animate(time = performance.now()) {
+  if (!renderer || !scene || !camera || !systemGroup || !particleMaterial) return
+
+  animationFrame = requestAnimationFrame(animate)
+  if (!reduceMotion) particleMaterial.uniforms.uTime.value = (time - startedAt) / 1000
+  const easing = reduceMotion ? 1 : 0.08
+  systemGroup.rotation.x += (targetRotationX - systemGroup.rotation.x) * easing
+  systemGroup.rotation.y += (targetRotationY - systemGroup.rotation.y) * easing
+  renderer.render(scene, camera)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  scene = new THREE.Scene()
+  scene.background = new THREE.Color(0x020617)
+  camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100)
+  camera.position.set(0, 2.25, 6.2)
+  camera.lookAt(-0.45, 0, 0)
+
+  systemGroup = new THREE.Group()
+  scene.add(systemGroup)
+
+  particleGeometry = createParticleGeometry()
+  particleMaterial = new THREE.ShaderMaterial({
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    fragmentShader: particleFragmentShader,
+    transparent: true,
+    uniforms: {
+      uOpacity: { value: particleOpacity(particleCount.value) },
+      uPixelRatio: { value: 1 },
+      uTime: { value: 0 },
+    },
+    vertexShader: particleVertexShader,
+  })
+  points = new THREE.Points(particleGeometry, particleMaterial)
+  points.frustumCulled = false
+  systemGroup.add(points)
+
+  glowTexture = createGlowTexture()
+  glowTexture.colorSpace = THREE.SRGBColorSpace
+  glowMaterial = new THREE.SpriteMaterial({
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    map: glowTexture,
+    transparent: true,
+  })
+  const starGlow = new THREE.Sprite(glowMaterial)
+  starGlow.position.set(-3.15, 0.3, 0)
+  starGlow.scale.set(1.5, 1.5, 1)
+  systemGroup.add(starGlow)
+
+  starGeometry = new THREE.SphereGeometry(0.34, 32, 16)
+  starMaterial = new THREE.MeshBasicMaterial({ color: 0xffd166 })
+  const star = new THREE.Mesh(starGeometry, starMaterial)
+  star.position.copy(starGlow.position)
+  systemGroup.add(star)
+
+  blackHoleGeometry = new THREE.SphereGeometry(0.3, 32, 16)
+  blackHoleMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 })
+  systemGroup.add(new THREE.Mesh(blackHoleGeometry, blackHoleMaterial))
+
+  ringGeometry = new THREE.TorusGeometry(0.38, 0.018, 8, 64)
+  ringMaterial = new THREE.MeshBasicMaterial({ color: 0xfbbf24 })
+  const eventHorizonRing = new THREE.Mesh(ringGeometry, ringMaterial)
+  eventHorizonRing.rotation.x = Math.PI / 2
+  systemGroup.add(eventHorizonRing)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  startedAt = performance.now()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  particleGeometry?.dispose()
+  particleMaterial?.dispose()
+  starGeometry?.dispose()
+  starMaterial?.dispose()
+  blackHoleGeometry?.dispose()
+  blackHoleMaterial?.dispose()
+  ringGeometry?.dispose()
+  ringMaterial?.dispose()
+  glowTexture?.dispose()
+  glowMaterial?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  targetRotationX = targetRotationY = 0
+  renderer = scene = camera = systemGroup = particleGeometry = particleMaterial = points = starGeometry = starMaterial = blackHoleGeometry = blackHoleMaterial = ringGeometry = ringMaterial = glowTexture = glowMaterial = animationFrame = resizeObserver = startedAt = undefined
+}
+
+watch(particleCount, applyParticleCount)
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.particles-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.particles-slide h1 {
+  color: #0f172a;
+}
+
+.particles-claim {
+  color: #334155;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.particles-claim strong {
+  color: #2563eb;
+}
+
+.particles-stage {
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  display: grid;
+  flex: 1;
+  grid-template-columns: 28% 72%;
+  margin-top: 1rem;
+  min-height: 21rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.particles-explainer {
+  background: #fff;
+  box-sizing: border-box;
+  padding: 1.1rem 1rem;
+}
+
+.particles-kicker {
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.particles-explainer h2 {
+  color: #0f172a;
+  font-size: 1.1rem;
+  margin: 0.25rem 0 0;
+}
+
+.particles-code {
+  background: #0f172a;
+  border-radius: 0.65rem;
+  color: #dbeafe;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.57rem;
+  line-height: 1.55;
+  margin-top: 0.8rem;
+  padding: 0.65rem 0.7rem;
+}
+
+.particles-code span {
+  display: block;
+}
+
+.particles-code b {
+  color: #c084fc;
+  font-weight: 500;
+}
+
+.particles-code i {
+  color: #fdba74;
+  font-style: normal;
+}
+
+.particles-code-indent {
+  padding-left: 0.75rem;
+}
+
+.particles-fact {
+  align-items: baseline;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.72rem 0.2rem;
+}
+
+.particles-fact strong {
+  color: #2563eb;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9rem;
+}
+
+.particles-fact span {
+  color: #64748b;
+  font-size: 0.62rem;
+}
+
+.particles-demo {
+  background: #020617;
+  cursor: move;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+.particles-scene,
+.particles-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.particles-demo-heading {
+  align-items: flex-start;
+  color: #e2e8f0;
+  display: flex;
+  font-size: 0.68rem;
+  justify-content: space-between;
+  left: 1rem;
+  pointer-events: none;
+  position: absolute;
+  right: 1rem;
+  top: 0.9rem;
+  z-index: 2;
+}
+
+.particles-demo-heading > div:first-child > span {
+  color: #fbbf24;
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  margin-bottom: 0.2rem;
+}
+
+.particles-demo-badges {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.particles-demo-badges span,
+.particles-demo-badges strong {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.4rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.55rem;
+  font-weight: 500;
+  padding: 0.28rem 0.38rem;
+}
+
+.particles-demo-badges strong {
+  color: #67e8f9;
+}
+
+.particles-pointer-hint {
+  bottom: 3.8rem;
+  color: #64748b;
+  font-size: 0.58rem;
+  left: 1rem;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.particles-control {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.65rem;
+  bottom: 0.8rem;
+  color: #94a3b8;
+  display: grid;
+  font-size: 0.58rem;
+  font-weight: 800;
+  gap: 0.5rem;
+  grid-template-columns: auto 1fr auto 7.5rem;
+  left: 1rem;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.65rem;
+  position: absolute;
+  right: 1rem;
+  z-index: 2;
+}
+
+.particles-control input {
+  accent-color: #f59e0b;
+  cursor: pointer;
+  min-width: 0;
+  width: 100%;
+}
+
+.particles-control output {
+  color: #fbbf24;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0;
+  text-align: right;
+}
+</style>
+
+<!--
+- This is a stylized accretion flow, not an N-body gravity simulation.
+- Particles originate throughout the companion star and follow one continuous inward spiral, eliminating a separate stream-to-disk join.
+- Their source offsets collapse gradually into the stream; slightly different orbital rates then shear it into a disk.
+- Angular speed increases toward the black hole, producing tighter and faster inner orbits.
+- The CPU allocates the maximum-size attributes once; particle motion then needs only a `uTime` uniform update each frame.
+- The vertex shader computes every particle's current position from its phase and time.
+- The count slider calls `geometry.setDrawRange()`; it does not rebuild or re-upload the buffers.
+- One `THREE.Points` object and one material render the entire particle system in one draw call.
+- The fragment shader turns each square point primitive into a soft circle and uses additive blending for the glow.
+- Alpha blending and overdraw can become the bottleneck even when draw calls stay low.
+- Use instanced quads instead when particles need larger images, independent rotation, or more predictable sizing.
+- Reduced-motion preferences freeze the flow while preserving count and pointer controls.
+-->
 
 ---
 
