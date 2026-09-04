@@ -2683,10 +2683,444 @@ onSlideLeave(disposeScene)
 - The slider is illustrative: the important idea is the animated lifecycle, not a performance benchmark.
 -->
 ---
+class: physical-properties-slide
+---
 
 # Animation: Physical Properties
 
-Tie data points to physical properties so movement communicates meaning.
+<div class="physical-claim">
+  Keep <code>x</code> and <code>y</code> stable. Choose what the record’s <code>data</code> means visually.
+</div>
+
+<div class="physical-layout">
+  <section class="physical-data-card">
+    <div class="physical-eyebrow">REPRESENTATIVE DATA</div>
+    <h2>Five records</h2>
+    <pre class="physical-data-code"><code><span class="physical-code-keyword">const</span> records = [
+  { <span class="physical-code-key">x</span>: -1.8, <span class="physical-code-key">y</span>:  0.7, <span class="physical-code-data">data</span>: 15 },
+  { <span class="physical-code-key">x</span>: -0.9, <span class="physical-code-key">y</span>: -0.6, <span class="physical-code-data">data</span>: 35 },
+  { <span class="physical-code-key">x</span>:  0.0, <span class="physical-code-key">y</span>:  0.3, <span class="physical-code-data">data</span>: 55 },
+  { <span class="physical-code-key">x</span>:  0.9, <span class="physical-code-key">y</span>: -0.4, <span class="physical-code-data">data</span>: 75 },
+  { <span class="physical-code-key">x</span>:  1.8, <span class="physical-code-key">y</span>:  0.6, <span class="physical-code-data">data</span>: 95 },
+]</code></pre>
+    <div class="physical-position-map"><code>x</code> → position.x <span>·</span> <code>y</code> → position.y</div>
+    <label class="physical-mapping-control" for="physical-mapping">
+      <span>Map <code>data</code> to</span>
+      <select id="physical-mapping" v-model="mapping">
+        <option value="mesh">Mesh shape</option>
+        <option value="color">Color</option>
+        <option value="scale">Scale</option>
+        <option value="rotation">Rotation</option>
+      </select>
+    </label>
+  </section>
+  <section class="physical-scene-card">
+    <div class="physical-scene-frame" @pointermove="tiltScene" @pointerleave="resetSceneTilt">
+      <div ref="sceneHost" class="physical-scene-canvas" role="img" :aria-label="'Three.js scene mapping record data to ' + mappingLabels[mapping] + '. Move the pointer over the scene to rotate it.'"></div>
+      <div class="physical-scene-title">THREE.JS SCENE</div>
+      <div class="physical-scene-map"><code>data</code><span>→</span><strong>{{ mappingLabels[mapping] }}</strong></div>
+      <div class="physical-scene-caption"><code>x</code> and <code>y</code> anchor each record · move pointer to rotate</div>
+    </div>
+  </section>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const mapping = ref('scale')
+const mappingLabels = {
+  mesh: 'Mesh shape',
+  color: 'Color',
+  scale: 'Scale',
+  rotation: 'Rotation',
+}
+const records = [
+  { x: -1.8, y: 0.7, data: 15 },
+  { x: -0.9, y: -0.6, data: 35 },
+  { x: 0, y: 0.3, data: 55 },
+  { x: 0.9, y: -0.4, data: 75 },
+  { x: 1.8, y: 0.6, data: 95 },
+]
+
+let renderer
+let scene
+let camera
+let plotGroup
+let geometries
+let grid
+let animationFrame
+let resizeObserver
+let targetTiltX = 0
+let targetTiltY = 0
+const meshStates = []
+
+function applyMapping() {
+  if (!meshStates.length) return
+
+  meshStates.forEach(({ mesh, record, targetColor, targetRotation }, index) => {
+    const amount = record.data / 100
+    mesh.geometry = geometries[0]
+    mesh.userData.targetScale = 1
+    targetColor.set(0x38bdf8)
+    targetRotation.set(0.25, 0.35, 0)
+
+    if (mapping.value === 'mesh') mesh.geometry = geometries[index + 1]
+    if (mapping.value === 'color') targetColor.setHSL(0.62 - amount * 0.55, 0.82, 0.58)
+    if (mapping.value === 'scale') mesh.userData.targetScale = 0.5 + amount
+    if (mapping.value === 'rotation') targetRotation.set(0.2, amount * Math.PI, amount * Math.PI * 1.5)
+  })
+}
+
+function tiltScene(event) {
+  const bounds = event.currentTarget.getBoundingClientRect()
+  targetTiltX = -((event.clientY - bounds.top) / bounds.height - 0.5) * 0.45
+  targetTiltY = ((event.clientX - bounds.left) / bounds.width - 0.5) * 0.9
+}
+
+function resetSceneTilt() {
+  targetTiltX = 0
+  targetTiltY = 0
+}
+
+function resize() {
+  if (!renderer || !camera || !sceneHost.value) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+}
+
+function animate() {
+  if (!renderer || !scene || !camera) return
+
+  animationFrame = requestAnimationFrame(animate)
+  if (plotGroup) {
+    plotGroup.rotation.x = THREE.MathUtils.lerp(plotGroup.rotation.x, targetTiltX, 0.08)
+    plotGroup.rotation.y = THREE.MathUtils.lerp(plotGroup.rotation.y, targetTiltY, 0.08)
+  }
+  meshStates.forEach(({ mesh, targetColor, targetRotation }) => {
+    const scale = THREE.MathUtils.lerp(mesh.scale.x, mesh.userData.targetScale, 0.08)
+    mesh.scale.setScalar(scale)
+    mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, targetRotation.x, 0.08)
+    mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, targetRotation.y, 0.08)
+    mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, targetRotation.z, 0.08)
+    mesh.material.color.lerp(targetColor, 0.08)
+  })
+  renderer.render(scene, camera)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  scene = new THREE.Scene()
+  scene.background = new THREE.Color(0x081426)
+  scene.fog = new THREE.Fog(0x081426, 6, 10)
+  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0.15, 6.4)
+  camera.lookAt(0, 0, 0)
+  plotGroup = new THREE.Group()
+  scene.add(plotGroup)
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.25))
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  scene.add(keyLight)
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  scene.add(rimLight)
+
+  geometries = [
+    new THREE.BoxGeometry(0.65, 0.42, 0.3),
+    new THREE.BoxGeometry(0.55, 0.55, 0.55),
+    new THREE.TetrahedronGeometry(0.42),
+    new THREE.OctahedronGeometry(0.42),
+    new THREE.TorusGeometry(0.32, 0.12, 12, 28),
+    new THREE.IcosahedronGeometry(0.4, 1),
+  ]
+  records.forEach((record) => {
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      metalness: 0.15,
+      roughness: 0.35,
+    })
+    const mesh = new THREE.Mesh(geometries[0], material)
+    mesh.position.set(record.x, record.y, 0)
+    mesh.rotation.set(0.25, 0.35, 0)
+    mesh.scale.setScalar(0)
+    mesh.userData.targetScale = 1
+    plotGroup.add(mesh)
+    meshStates.push({
+      mesh,
+      record,
+      targetColor: new THREE.Color(0x38bdf8),
+      targetRotation: new THREE.Euler(0.25, 0.35, 0),
+    })
+  })
+
+  grid = new THREE.GridHelper(5.5, 11, 0x334155, 0x1e293b)
+  grid.rotation.x = Math.PI / 2
+  grid.position.z = -1.5
+  grid.material.transparent = true
+  grid.material.opacity = 0.45
+  plotGroup.add(grid)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  applyMapping()
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  meshStates.forEach(({ mesh }) => mesh.material.dispose())
+  meshStates.length = 0
+  geometries?.forEach((geometry) => geometry.dispose())
+  grid?.geometry.dispose()
+  grid?.material.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+  resetSceneTilt()
+
+  renderer = scene = camera = plotGroup = geometries = grid = animationFrame = resizeObserver = undefined
+}
+
+watch(mapping, applyMapping)
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.physical-properties-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.physical-properties-slide h1 {
+  color: #0f172a;
+}
+
+.physical-claim {
+  color: #334155;
+  font-size: 1.4rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.physical-claim code,
+.physical-scene-map code,
+.physical-scene-caption code {
+  background: #dbeafe;
+  border-radius: 0.3rem;
+  color: #1d4ed8;
+  font-size: 0.88em;
+  padding: 0.08rem 0.28rem;
+}
+
+.physical-layout {
+  display: grid;
+  flex: 1;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  margin-top: 1rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.physical-data-card,
+.physical-scene-card {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  min-height: 19rem;
+  padding: 1rem 1.1rem 0.85rem;
+}
+
+.physical-data-card {
+  border-top: 4px solid #64748b;
+  display: flex;
+  flex-direction: column;
+}
+
+.physical-scene-card {
+  border-top: 4px solid #2563eb;
+  display: flex;
+  min-width: 0;
+}
+
+.physical-eyebrow,
+.physical-scene-title {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.physical-data-card h2 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.physical-data-code {
+  background: #0f172a;
+  border-radius: 0.7rem;
+  color: #e2e8f0;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.68rem;
+  line-height: 1.65;
+  margin: 0.75rem 0 0;
+  overflow: hidden;
+  padding: 0.75rem 0.8rem;
+  white-space: pre;
+}
+
+.physical-code-keyword {
+  color: #93c5fd;
+}
+
+.physical-code-key {
+  color: #a7f3d0;
+}
+
+.physical-code-data {
+  color: #f9a8d4;
+}
+
+.physical-position-map {
+  color: #64748b;
+  font-size: 0.7rem;
+  margin-top: 0.65rem;
+}
+
+.physical-position-map code,
+.physical-mapping-control code {
+  background: #e2e8f0;
+  border-radius: 0.25rem;
+  color: #334155;
+  font-size: 0.9em;
+  padding: 0.08rem 0.22rem;
+}
+
+.physical-position-map span {
+  color: #cbd5e1;
+  margin: 0 0.3rem;
+}
+
+.physical-mapping-control {
+  align-items: center;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.65rem;
+  color: #334155;
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  gap: 0.65rem;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 0.55rem 0.65rem;
+}
+
+.physical-mapping-control select {
+  background: #fff;
+  border: 1px solid #93c5fd;
+  border-radius: 0.45rem;
+  color: #0f172a;
+  font: inherit;
+  padding: 0.35rem 0.45rem;
+}
+
+.physical-scene-frame {
+  background: #081426;
+  border-radius: 0.75rem;
+  cursor: crosshair;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.physical-scene-canvas,
+.physical-scene-canvas canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.physical-scene-title {
+  color: #cbd5e1;
+  left: 1rem;
+  position: absolute;
+  top: 0.9rem;
+}
+
+.physical-scene-map {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.65rem;
+  color: #cbd5e1;
+  display: flex;
+  font-size: 0.7rem;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  position: absolute;
+  right: 1rem;
+  top: 0.75rem;
+}
+
+.physical-scene-map code,
+.physical-scene-caption code {
+  background: rgba(219, 234, 254, 0.14);
+  color: #bfdbfe;
+}
+
+.physical-scene-map strong {
+  color: #93c5fd;
+}
+
+.physical-scene-caption {
+  bottom: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  left: 1rem;
+  position: absolute;
+}
+</style>
+
+<!--
+- `x` and `y` always map to position, so each record keeps its identity as the visual channel changes.
+- The dropdown remaps the same `data` value to mesh shape, color, scale, or rotation.
+- Mesh shape is a categorical threshold mapping; the other examples use continuous numeric mappings.
+- Animate between mappings so viewers can track the same records instead of decoding a replacement scene.
+- Moving the pointer rotates the entire plot group, making the scene’s depth easier to see.
+- Position and scale are easier to compare precisely than color or rotation.
+- Color needs a legend and should not be the only way important information is communicated.
+- Pick a visual property that matches the meaning of the data; more channels are not automatically better.
+-->
 
 ---
 
