@@ -4792,16 +4792,438 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-
-# Three.js Tool: BufferGeometry
-
-BufferGeometry efficiently represents mesh, line, and point data for the GPU.
-
+class: texture-size-slide
 ---
 
 # Three.js Tool: Textures
 
-Textures add image data and surface detail to rendered objects.
+<div class="texture-claim">
+  A texture costs its source size—<strong>even when rendered small.</strong>
+</div>
+
+<div class="texture-stage">
+  <div ref="sceneHost" class="texture-scene" role="img" aria-label="The same artwork rendered from 256 and 2048 pixel textures at an identical screen size"></div>
+  <div class="texture-divider" aria-hidden="true"></div>
+  <section class="texture-label texture-label--left">
+    <div class="texture-eyebrow">SMALL SOURCE</div>
+    <h2>256 × 256</h2>
+    <div class="texture-stats">
+      <span>65K texels</span>
+      <strong>≈ 0.33 MiB</strong>
+    </div>
+  </section>
+  <section class="texture-label texture-label--right">
+    <div class="texture-eyebrow">LARGE SOURCE</div>
+    <h2>2048 × 2048</h2>
+    <div class="texture-stats">
+      <span>4.2M texels</span>
+      <strong>≈ 21.3 MiB</strong>
+      <b>64× pixels</b>
+    </div>
+  </section>
+  <div class="texture-crop texture-crop--left">
+    crop spans {{ Math.round(256 / textureZoom) }} source texels
+  </div>
+  <div class="texture-crop texture-crop--right">
+    crop spans {{ Math.round(2048 / textureZoom) }} source texels
+  </div>
+</div>
+
+<label class="texture-zoom-control" for="texture-zoom">
+  <div>
+    <span>INSPECT THE TEXTURE</span>
+    <strong>{{ textureZoom < 1.5 ? 'Same footprint. Very different cost.' : 'Extra detail matters only when the view needs it.' }}</strong>
+  </div>
+  <input
+    id="texture-zoom"
+    v-model.number="textureZoom"
+    type="range"
+    min="1"
+    max="8"
+    step="0.1"
+  />
+  <output>{{ textureZoom.toFixed(1) }}× zoom</output>
+</label>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const textureZoom = ref(1)
+const sourceSizes = [256, 2048]
+
+let renderer
+let leftScene
+let rightScene
+let leftCamera
+let rightCamera
+let geometry
+let textures = []
+let materials = []
+let resizeObserver
+
+function createArtwork(size) {
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = size
+
+  const context = canvas.getContext('2d')
+  context.scale(size / 512, size / 512)
+
+  const background = context.createLinearGradient(0, 0, 512, 512)
+  background.addColorStop(0, '#071b35')
+  background.addColorStop(0.55, '#123f67')
+  background.addColorStop(1, '#0f766e')
+  context.fillStyle = background
+  context.fillRect(0, 0, 512, 512)
+
+  for (let coordinate = 0; coordinate <= 512; coordinate += 16) {
+    const major = coordinate % 64 === 0
+    context.strokeStyle = major ? 'rgba(103, 232, 249, 0.28)' : 'rgba(148, 163, 184, 0.1)'
+    context.lineWidth = major ? 1.4 : 0.6
+    context.beginPath()
+    context.moveTo(coordinate, 0)
+    context.lineTo(coordinate, 512)
+    context.moveTo(0, coordinate)
+    context.lineTo(512, coordinate)
+    context.stroke()
+  }
+
+  context.strokeStyle = '#67e8f9'
+  context.fillStyle = '#f8fafc'
+  context.lineWidth = 2
+  context.translate(256, 256)
+  ;[24, 52, 96, 154].forEach((radius) => {
+    context.beginPath()
+    context.arc(0, 0, radius, 0, Math.PI * 2)
+    context.stroke()
+  })
+  context.beginPath()
+  context.moveTo(-190, 38)
+  context.bezierCurveTo(-92, -118, 72, 126, 190, -54)
+  context.strokeStyle = '#fbbf24'
+  context.lineWidth = 3
+  context.stroke()
+
+  for (let index = 0; index < 120; index++) {
+    const x = (index * 83) % 480 - 240
+    const y = (index * 137) % 480 - 240
+    context.fillStyle = index % 4 === 0 ? '#f472b6' : 'rgba(226, 232, 240, 0.6)'
+    context.fillRect(x, y, index % 4 === 0 ? 3 : 1.5, index % 4 === 0 ? 3 : 1.5)
+  }
+
+  context.fillStyle = '#f8fafc'
+  context.font = '700 15px sans-serif'
+  context.textAlign = 'center'
+  context.fillText('TEXTURE DETAIL', 0, -7)
+  context.fillStyle = '#67e8f9'
+  context.font = '600 10px monospace'
+  context.fillText('CENTER SAMPLE', 0, 12)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.magFilter = THREE.LinearFilter
+  texture.minFilter = THREE.LinearMipmapLinearFilter
+  return texture
+}
+
+function createView(texture, background) {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(background)
+  const material = new THREE.MeshBasicMaterial({ map: texture })
+  materials.push(material)
+  view.add(new THREE.Mesh(geometry, material))
+  return view
+}
+
+function updateCamera(camera, width, height) {
+  const halfHeight = 1.5
+  const halfWidth = halfHeight * width / height
+  camera.left = -halfWidth
+  camera.right = halfWidth
+  camera.top = halfHeight
+  camera.bottom = -halfHeight
+  camera.updateProjectionMatrix()
+}
+
+function renderViews() {
+  if (!renderer || !sceneHost.value || !leftScene || !rightScene) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  const leftWidth = Math.floor(width / 2)
+  if (!width || !height || !leftWidth) return
+
+  renderer.setScissorTest(true)
+  renderer.setViewport(0, 0, leftWidth, height)
+  renderer.setScissor(0, 0, leftWidth, height)
+  renderer.render(leftScene, leftCamera)
+  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
+  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
+  renderer.render(rightScene, rightCamera)
+  renderer.setScissorTest(false)
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  const leftWidth = Math.floor(width / 2)
+  updateCamera(leftCamera, leftWidth, height)
+  updateCamera(rightCamera, width - leftWidth, height)
+  renderViews()
+}
+
+function applyZoom(zoom) {
+  const repeat = 1 / zoom
+  const offset = (1 - repeat) / 2
+  textures.forEach((texture) => {
+    texture.repeat.set(repeat, repeat)
+    texture.offset.set(offset, offset)
+  })
+  renderViews()
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  geometry = new THREE.PlaneGeometry(2, 2)
+  textures = sourceSizes.map(createArtwork)
+  leftScene = createView(textures[0], 0x081426)
+  rightScene = createView(textures[1], 0x0a1d2d)
+  leftCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10)
+  rightCamera = leftCamera.clone()
+  leftCamera.position.z = rightCamera.position.z = 2
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  applyZoom(textureZoom.value)
+  resize()
+}
+
+function disposeScene() {
+  resizeObserver?.disconnect()
+  geometry?.dispose()
+  materials.forEach((material) => material.dispose())
+  textures.forEach((texture) => texture.dispose())
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  textures = []
+  materials = []
+  renderer = leftScene = rightScene = leftCamera = rightCamera = geometry = resizeObserver = undefined
+}
+
+watch(textureZoom, applyZoom)
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.texture-size-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.texture-size-slide h1 {
+  color: #0f172a;
+}
+
+.texture-claim {
+  color: #334155;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.texture-claim strong {
+  color: #2563eb;
+}
+
+.texture-stage {
+  background: #081426;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  flex: 1;
+  margin-top: 1rem;
+  min-height: 17.5rem;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.texture-scene,
+.texture-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.texture-divider {
+  background: rgba(148, 163, 184, 0.3);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 1;
+}
+
+.texture-label {
+  color: #f8fafc;
+  pointer-events: none;
+  position: absolute;
+  top: 0.9rem;
+  width: calc(50% - 2.4rem);
+  z-index: 2;
+}
+
+.texture-label--left {
+  left: 1.2rem;
+}
+
+.texture-label--right {
+  left: calc(50% + 1.2rem);
+}
+
+.texture-eyebrow {
+  color: #cbd5e1;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.texture-label h2 {
+  color: #fff;
+  font-size: 1.05rem;
+  margin: 0.12rem 0 0;
+}
+
+.texture-stats {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.texture-stats span,
+.texture-stats strong,
+.texture-stats b {
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.4rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.55rem;
+  font-weight: 500;
+  padding: 0.27rem 0.36rem;
+}
+
+.texture-stats strong {
+  color: #67e8f9;
+}
+
+.texture-stats b {
+  border-color: rgba(251, 191, 36, 0.6);
+  color: #fbbf24;
+}
+
+.texture-crop {
+  bottom: 0.65rem;
+  color: #94a3b8;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.58rem;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.texture-crop--left {
+  left: 1.2rem;
+}
+
+.texture-crop--right {
+  left: calc(50% + 1.2rem);
+}
+
+.texture-zoom-control {
+  align-items: center;
+  align-self: center;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.7rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 15rem 15rem 5rem;
+  margin-top: 0.65rem;
+  padding: 0.48rem 0.7rem;
+}
+
+.texture-zoom-control > div span,
+.texture-zoom-control > div strong {
+  display: block;
+}
+
+.texture-zoom-control > div span {
+  color: #64748b;
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.texture-zoom-control > div strong {
+  color: #334155;
+  font-size: 0.65rem;
+  margin-top: 0.05rem;
+}
+
+.texture-zoom-control input {
+  accent-color: #2563eb;
+  cursor: pointer;
+  width: 100%;
+}
+
+.texture-zoom-control output {
+  color: #2563eb;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-align: right;
+}
+</style>
+
+<!--
+- Both panels render the same generated artwork at the same on-screen size.
+- The sources are real 256 by 256 and 2048 by 2048 canvas textures: eight times wider means sixty-four times as many texels.
+- An uncompressed RGBA texture costs roughly `width × height × 4` bytes on the GPU; mipmaps add about one third.
+- That is approximately 0.33 MiB versus 21.3 MiB here, even though the normal view looks nearly identical.
+- Zoom in to show the use case where the larger source finally preserves visible detail.
+- Choose dimensions from the texture's largest expected screen footprint, including device pixel ratio and any user zoom.
+- Resize source images before upload; a visually small mesh does not make its source texture cheap.
+- GPU-compressed formats change the exact memory cost, but right-sizing remains the first and simplest optimization.
+- Dispose replaced textures so their GPU allocations can be released.
+-->
 
 ---
 
