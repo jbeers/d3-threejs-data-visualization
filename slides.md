@@ -3858,10 +3858,432 @@ The renderer opens the door to a broader set of GPU-powered tools.
 Billboard images can be instanced and animated.
 
 ---
+class: shader-slide
+---
 
 # Three.js Tool: Shaders
 
-Buffers move data to the GPU, instancing reduces calls, and shaders move visual calculations there.
+<div class="shader-claim">
+  One small program. <strong>Thousands of parallel calculations.</strong>
+</div>
+
+<div class="shader-stage">
+  <section class="shader-code-panel">
+    <div class="shader-code-heading">
+      <span class="shader-code-step shader-code-step--vertex">VERTEX</span>
+      Move each vertex
+      <span class="shader-language">GLSL</span>
+    </div>
+    <div class="shader-code">
+      <span class="shader-code-line"><span class="shader-token-keyword">uniform</span> <span class="shader-token-type">float</span> <span class="shader-token-uniform">uTime</span>;</span>
+      <span class="shader-code-line"><span class="shader-token-keyword">uniform</span> <span class="shader-token-type">float</span> <span class="shader-token-uniform">uAmplitude</span>;</span>
+      <span class="shader-code-line"><span class="shader-token-keyword">varying</span> <span class="shader-token-type">float</span> vHeight;</span>
+      <span class="shader-code-line"><span class="shader-token-type">void</span> <span class="shader-token-function">main</span>() {</span>
+      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> p = <span class="shader-token-builtin">position</span>;</span>
+      <span class="shader-code-line shader-code-line--indent">vHeight = <span class="shader-token-function">sin</span>(p.x * <span class="shader-token-number">3.0</span> + <span class="shader-token-uniform">uTime</span>)</span>
+      <span class="shader-code-line shader-code-line--double-indent">* <span class="shader-token-uniform">uAmplitude</span>;</span>
+      <span class="shader-code-line shader-code-line--indent">p.z += vHeight;</span>
+      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-builtin">gl_Position</span> = <span class="shader-token-builtin">projectionMatrix</span></span>
+      <span class="shader-code-line shader-code-line--double-indent">* <span class="shader-token-builtin">modelViewMatrix</span> * <span class="shader-token-type">vec4</span>(p, <span class="shader-token-number">1.0</span>);</span>
+      <span class="shader-code-line">}</span>
+    </div>
+    <div class="shader-code-heading shader-code-heading--fragment">
+      <span class="shader-code-step shader-code-step--fragment">FRAGMENT</span>
+      Color each fragment
+    </div>
+    <div class="shader-code shader-code--fragment">
+      <span class="shader-code-line"><span class="shader-token-keyword">varying</span> <span class="shader-token-type">float</span> vHeight;</span>
+      <span class="shader-code-line"><span class="shader-token-type">void</span> <span class="shader-token-function">main</span>() {</span>
+      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">float</span> height = <span class="shader-token-function">smoothstep</span>(<span class="shader-token-number">-0.45</span>, <span class="shader-token-number">0.45</span>, vHeight);</span>
+      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> low = <span class="shader-token-type">vec3</span>(<span class="shader-token-number">0.12</span>, <span class="shader-token-number">0.23</span>, <span class="shader-token-number">0.54</span>);</span>
+      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> high = <span class="shader-token-type">vec3</span>(<span class="shader-token-number">0.13</span>, <span class="shader-token-number">0.83</span>, <span class="shader-token-number">0.93</span>);</span>
+      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> color = <span class="shader-token-function">mix</span>(low, high, height);</span>
+      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-builtin">gl_FragColor</span> = <span class="shader-token-type">vec4</span>(color, <span class="shader-token-number">1.0</span>);</span>
+      <span class="shader-code-line">}</span>
+    </div>
+  </section>
+
+  <section class="shader-demo">
+    <div ref="sceneHost" class="shader-scene" role="img" aria-label="A wave surface displaced and colored by a custom Three.js shader"></div>
+    <div class="shader-demo-heading">
+      <div>
+        <span>GPU WAVE SURFACE</span>
+        Position becomes height; height becomes color.
+      </div>
+      <div class="shader-demo-stats">
+        <span>6,565 vertices</span>
+        <span>1 draw call</span>
+      </div>
+    </div>
+    <label class="shader-control" for="shader-amplitude">
+      <span>uAmplitude</span>
+      <input
+        id="shader-amplitude"
+        v-model.number="amplitude"
+        type="range"
+        min="0"
+        max="0.55"
+        step="0.01"
+      />
+      <output>{{ amplitude.toFixed(2) }}</output>
+    </label>
+  </section>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const amplitude = ref(0.34)
+
+const vertexShader = `uniform float uTime;
+uniform float uAmplitude;
+varying float vHeight;
+void main() {
+  vec3 p = position;
+  vHeight = sin(p.x * 3.0 + uTime) * uAmplitude;
+  p.z += vHeight;
+  gl_Position = projectionMatrix
+    * modelViewMatrix * vec4(p, 1.0);
+}`
+
+const fragmentShader = `varying float vHeight;
+void main() {
+  float height = smoothstep(-0.45, 0.45, vHeight);
+  vec3 low = vec3(0.12, 0.23, 0.54);
+  vec3 high = vec3(0.13, 0.83, 0.93);
+  vec3 color = mix(low, high, height);
+  gl_FragColor = vec4(color, 1.0);
+}`
+
+let renderer
+let scene
+let camera
+let geometry
+let material
+let mesh
+let animationFrame
+let resizeObserver
+let reduceMotion = false
+
+function resize() {
+  if (!renderer || !camera || !sceneHost.value) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+}
+
+function animate(time = performance.now()) {
+  if (!renderer || !scene || !camera || !material) return
+
+  animationFrame = requestAnimationFrame(animate)
+  if (!reduceMotion) material.uniforms.uTime.value = time / 700
+  renderer.render(scene, camera)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  scene = new THREE.Scene()
+  scene.background = new THREE.Color(0x07111f)
+
+  camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
+  camera.position.set(0, -4.7, 3.4)
+  camera.lookAt(0, 0.15, 0)
+
+  geometry = new THREE.PlaneGeometry(5.2, 3.2, 100, 64)
+  material = new THREE.ShaderMaterial({
+    fragmentShader,
+    side: THREE.DoubleSide,
+    uniforms: {
+      uAmplitude: { value: amplitude.value },
+      uTime: { value: 0 },
+    },
+    vertexShader,
+  })
+  mesh = new THREE.Mesh(geometry, material)
+  mesh.rotation.z = -0.08
+  scene.add(mesh)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  geometry?.dispose()
+  material?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  renderer = scene = camera = geometry = material = mesh = animationFrame = resizeObserver = undefined
+}
+
+watch(amplitude, (value) => {
+  if (material) material.uniforms.uAmplitude.value = value
+})
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.shader-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.shader-slide h1 {
+  color: #0f172a;
+}
+
+.shader-claim {
+  color: #334155;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.shader-claim strong {
+  color: #2563eb;
+}
+
+.shader-stage {
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  display: grid;
+  flex: 1;
+  grid-template-columns: 43% 57%;
+  margin-top: 1rem;
+  min-height: 21rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.shader-code-panel {
+  background: #0f172a;
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 1rem 1.15rem;
+}
+
+.shader-code-heading {
+  align-items: center;
+  color: #cbd5e1;
+  display: flex;
+  font-size: 0.68rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  letter-spacing: 0.02em;
+}
+
+.shader-code-heading--fragment {
+  margin-top: 0.7rem;
+}
+
+.shader-code-step {
+  border-radius: 0.35rem;
+  color: #fff;
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.22rem 0.35rem;
+}
+
+.shader-code-step--vertex {
+  background: #2563eb;
+}
+
+.shader-code-step--fragment {
+  background: #db2777;
+}
+
+.shader-language {
+  border: 1px solid #475569;
+  border-radius: 0.35rem;
+  color: #94a3b8;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  margin-left: auto;
+  padding: 0.2rem 0.35rem;
+}
+
+.shader-code {
+  background: transparent;
+  color: #e2e8f0;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.6rem;
+  line-height: 1.42;
+  margin: 0.52rem 0 0;
+  overflow: visible;
+  padding: 0;
+  white-space: pre-wrap;
+}
+
+.shader-code--fragment {
+  line-height: 1.38;
+}
+
+.shader-code-line {
+  display: block;
+}
+
+.shader-code-line--indent {
+  padding-left: 0.9rem;
+}
+
+.shader-code-line--double-indent {
+  padding-left: 1.8rem;
+}
+
+.shader-token-keyword {
+  color: #c084fc;
+}
+
+.shader-token-type {
+  color: #93c5fd;
+}
+
+.shader-token-uniform {
+  color: #86efac;
+}
+
+.shader-token-builtin {
+  color: #67e8f9;
+}
+
+.shader-token-function {
+  color: #fbbf24;
+}
+
+.shader-token-number {
+  color: #fdba74;
+}
+
+.shader-demo {
+  background: #07111f;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.shader-scene,
+.shader-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.shader-demo-heading {
+  align-items: flex-start;
+  color: #e2e8f0;
+  display: flex;
+  font-size: 0.7rem;
+  justify-content: space-between;
+  left: 1rem;
+  pointer-events: none;
+  position: absolute;
+  right: 1rem;
+  top: 0.9rem;
+  z-index: 2;
+}
+
+.shader-demo-heading > div:first-child > span {
+  color: #67e8f9;
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  margin-bottom: 0.2rem;
+}
+
+.shader-demo-stats {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.shader-demo-stats span {
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 0.4rem;
+  color: #cbd5e1;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.56rem;
+  padding: 0.28rem 0.38rem;
+}
+
+.shader-control {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.65rem;
+  bottom: 0.8rem;
+  color: #e2e8f0;
+  display: grid;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  gap: 0.65rem;
+  grid-template-columns: auto 1fr 2.5rem;
+  left: 1rem;
+  padding: 0.5rem 0.65rem;
+  position: absolute;
+  right: 1rem;
+  z-index: 2;
+}
+
+.shader-control > span {
+  color: #93c5fd;
+}
+
+.shader-control input {
+  accent-color: #22d3ee;
+  cursor: pointer;
+  min-width: 0;
+  width: 100%;
+}
+
+.shader-control output {
+  color: #67e8f9;
+  text-align: right;
+}
+</style>
+
+<!--
+- The plane contains 6,565 vertices, but the CPU updates only one `uTime` uniform each frame.
+- Uniforms are values shared by every shader invocation in a draw call; the slider updates `uAmplitude` without rebuilding geometry.
+- The vertex shader receives Three.js's `position` attribute and built-in projection and model-view matrices.
+- It changes each vertex's z position with the same sine function.
+- `vHeight` is interpolated across the triangle and passed into the fragment shader.
+- The fragment shader turns that height into a color for each fragment.
+- This is one mesh and one material, so it remains one draw call.
+- Shaders are valuable when many vertices or pixels need the same custom calculation; they are not automatically faster for every task.
+- Reduced-motion preferences freeze `uTime` while keeping the amplitude control usable.
+-->
 
 ---
 
