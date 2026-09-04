@@ -3852,10 +3852,426 @@ onSlideLeave(disposeScene)
 The renderer opens the door to a broader set of GPU-powered tools.
 
 ---
+class: billboard-slide
+---
 
 # Three.js Tool: Billboard Images
 
-Billboard images can be instanced and animated.
+<div class="billboard-claim">
+  A billboard is a 2D image that <strong>always faces the camera.</strong>
+</div>
+
+<div
+  class="billboard-stage"
+  @pointermove="handlePointerMove"
+  @pointerleave="resetPointer"
+>
+  <div ref="sceneHost" class="billboard-scene" role="img" aria-label="Fixed image planes compared with camera-facing Three.js sprites while the camera orbits"></div>
+  <div class="billboard-divider" aria-hidden="true"></div>
+  <section class="billboard-label billboard-label--left">
+    <div class="billboard-eyebrow">FIXED PLANES</div>
+    <h2>World-aligned images</h2>
+    <div class="billboard-badge billboard-badge--left">rotation stays fixed</div>
+  </section>
+  <section class="billboard-label billboard-label--right">
+    <div class="billboard-eyebrow">BILLBOARDS</div>
+    <h2>Camera-facing images</h2>
+    <div class="billboard-badge billboard-badge--right">THREE.Sprite</div>
+  </section>
+  <div class="billboard-caption billboard-caption--left">PlaneGeometry · same texture · same positions</div>
+  <div class="billboard-caption billboard-caption--right">Sprite · same texture · same positions</div>
+  <div class="billboard-hint">↔ Move the pointer to orbit both cameras</div>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const markerPositions = [
+  [-1.45, 0.55, 0.15],
+  [-0.5, 0.72, -0.75],
+  [0.45, 0.5, 0.55],
+  [1.4, 0.65, -0.2],
+  [-1.2, -0.15, -0.65],
+  [-0.25, -0.05, 0.2],
+  [0.8, -0.18, -0.55],
+  [1.5, -0.1, 0.5],
+  [-0.75, -0.82, 0.4],
+  [0.3, -0.72, -0.35],
+  [1.2, -0.88, 0.05],
+]
+const restingYaw = -0.55
+
+let renderer
+let leftScene
+let rightScene
+let leftCamera
+let rightCamera
+let planeGeometry
+let planeMaterial
+let spriteMaterial
+let markerTexture
+let grids = []
+let animationFrame
+let resizeObserver
+let targetYaw = restingYaw
+let targetPitch = 0.06
+let currentYaw = restingYaw
+let currentPitch = 0.06
+let reduceMotion = false
+
+function createMarkerTexture() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 256
+  canvas.height = 160
+  const context = canvas.getContext('2d')
+
+  const gradient = context.createLinearGradient(8, 8, 248, 152)
+  gradient.addColorStop(0, '#2563eb')
+  gradient.addColorStop(1, '#06b6d4')
+  context.fillStyle = gradient
+  context.beginPath()
+  context.roundRect(8, 8, 240, 144, 24)
+  context.fill()
+  context.strokeStyle = 'rgba(255, 255, 255, 0.75)'
+  context.lineWidth = 4
+  context.stroke()
+
+  context.fillStyle = '#f8fafc'
+  context.beginPath()
+  context.arc(58, 80, 25, 0, Math.PI * 2)
+  context.fill()
+  context.fillStyle = '#1d4ed8'
+  context.beginPath()
+  context.arc(58, 80, 10, 0, Math.PI * 2)
+  context.fill()
+
+  context.fillStyle = '#f8fafc'
+  context.font = '700 30px sans-serif'
+  context.textAlign = 'left'
+  context.textBaseline = 'middle'
+  context.fillText('DATA', 96, 80)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
+function createView(background) {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(background)
+
+  const grid = new THREE.GridHelper(5.5, 11, 0x334155, 0x1e293b)
+  grid.position.y = -1.28
+  grid.material.transparent = true
+  grid.material.opacity = 0.45
+  view.add(grid)
+  grids.push(grid)
+  return view
+}
+
+function createCamera() {
+  return new THREE.PerspectiveCamera(38, 1, 0.1, 100)
+}
+
+function addMarkers() {
+  markerPositions.forEach(([x, y, z]) => {
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial)
+    plane.position.set(x, y, z)
+    leftScene.add(plane)
+
+    const sprite = new THREE.Sprite(spriteMaterial)
+    sprite.position.set(x, y, z)
+    sprite.scale.set(0.9, 0.56, 1)
+    rightScene.add(sprite)
+  })
+}
+
+function updateCameras() {
+  const radius = 6.2
+  const horizontalRadius = Math.cos(currentPitch) * radius
+  const x = Math.sin(currentYaw) * horizontalRadius
+  const y = Math.sin(currentPitch) * radius
+  const z = Math.cos(currentYaw) * horizontalRadius
+
+  leftCamera.position.set(x, y, z)
+  rightCamera.position.copy(leftCamera.position)
+  leftCamera.lookAt(0, -0.15, 0)
+  rightCamera.lookAt(0, -0.15, 0)
+}
+
+function handlePointerMove(event) {
+  const bounds = event.currentTarget.getBoundingClientRect()
+  const x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
+  const y = ((event.clientY - bounds.top) / bounds.height) * 2 - 1
+  targetYaw = x * 1.2
+  targetPitch = -y * 0.24
+}
+
+function resetPointer() {
+  targetYaw = restingYaw
+  targetPitch = 0.06
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  const leftWidth = Math.floor(width / 2)
+  leftCamera.aspect = leftWidth / height
+  rightCamera.aspect = (width - leftWidth) / height
+  leftCamera.updateProjectionMatrix()
+  rightCamera.updateProjectionMatrix()
+}
+
+function animate() {
+  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
+
+  animationFrame = requestAnimationFrame(animate)
+  if (reduceMotion) {
+    currentYaw = targetYaw
+    currentPitch = targetPitch
+  } else {
+    currentYaw += (targetYaw - currentYaw) * 0.08
+    currentPitch += (targetPitch - currentPitch) * 0.08
+  }
+  updateCameras()
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  const leftWidth = Math.floor(width / 2)
+  renderer.setScissorTest(true)
+  renderer.setViewport(0, 0, leftWidth, height)
+  renderer.setScissor(0, 0, leftWidth, height)
+  renderer.render(leftScene, leftCamera)
+  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
+  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
+  renderer.render(rightScene, rightCamera)
+  renderer.setScissorTest(false)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  leftScene = createView(0x081426)
+  rightScene = createView(0x0a1d2d)
+  leftCamera = createCamera()
+  rightCamera = createCamera()
+
+  markerTexture = createMarkerTexture()
+  planeGeometry = new THREE.PlaneGeometry(0.9, 0.56)
+  planeMaterial = new THREE.MeshBasicMaterial({
+    alphaTest: 0.05,
+    map: markerTexture,
+    side: THREE.DoubleSide,
+    transparent: true,
+  })
+  spriteMaterial = new THREE.SpriteMaterial({
+    alphaTest: 0.05,
+    map: markerTexture,
+    transparent: true,
+  })
+  addMarkers()
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  updateCameras()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  grids.forEach((grid) => {
+    grid.geometry.dispose()
+    grid.material.dispose()
+  })
+  planeGeometry?.dispose()
+  planeMaterial?.dispose()
+  spriteMaterial?.dispose()
+  markerTexture?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  grids = []
+  targetYaw = currentYaw = restingYaw
+  targetPitch = currentPitch = 0.06
+  renderer = leftScene = rightScene = leftCamera = rightCamera = planeGeometry = planeMaterial = spriteMaterial = markerTexture = animationFrame = resizeObserver = undefined
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.billboard-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.billboard-slide h1 {
+  color: #0f172a;
+}
+
+.billboard-claim {
+  color: #334155;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.billboard-claim strong {
+  color: #2563eb;
+}
+
+.billboard-stage {
+  background: #081426;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  cursor: ew-resize;
+  flex: 1;
+  margin-top: 1rem;
+  min-height: 21rem;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+  width: 100%;
+}
+
+.billboard-scene,
+.billboard-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.billboard-divider {
+  background: rgba(148, 163, 184, 0.3);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 1;
+}
+
+.billboard-label {
+  color: #f8fafc;
+  pointer-events: none;
+  position: absolute;
+  top: 1rem;
+  width: calc(50% - 2.5rem);
+  z-index: 2;
+}
+
+.billboard-label--left {
+  left: 1.25rem;
+}
+
+.billboard-label--right {
+  left: calc(50% + 1.25rem);
+}
+
+.billboard-eyebrow {
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.billboard-label h2 {
+  color: #fff;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.billboard-badge {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.62rem;
+  padding: 0.3rem 0.45rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.billboard-badge--left {
+  color: #fdba74;
+}
+
+.billboard-badge--right {
+  color: #93c5fd;
+}
+
+.billboard-caption {
+  bottom: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.62rem;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.billboard-caption--left {
+  left: 1.25rem;
+}
+
+.billboard-caption--right {
+  left: calc(50% + 1.25rem);
+}
+
+.billboard-hint {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+  bottom: 0.65rem;
+  color: #e2e8f0;
+  font-size: 0.62rem;
+  left: 50%;
+  padding: 0.35rem 0.65rem;
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 3;
+}
+</style>
+
+<!--
+- Both sides use the same texture, positions, perspective, and camera movement.
+- The left uses ordinary `PlaneGeometry`, so every image keeps its world-space orientation.
+- The right uses `THREE.Sprite`; the renderer keeps each image facing the camera.
+- Move the pointer horizontally to orbit both cameras and watch the fixed planes turn edge-on while the sprites remain legible.
+- Billboards are useful for labels, icons, map markers, particles, and other images whose orientation carries no meaning.
+- Do not use them when surface direction or object orientation is part of the data.
+- `THREE.Sprite` is convenient but is not automatically instanced; very large marker sets usually use instanced quads with camera-facing shader math.
+- Transparent billboard images still require attention to depth ordering, alpha testing, and overdraw.
+- Reduced-motion preferences remove camera easing while preserving direct pointer control.
+-->
 
 ---
 class: shader-slide
