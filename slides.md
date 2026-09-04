@@ -4286,10 +4286,510 @@ onSlideLeave(disposeScene)
 -->
 
 ---
+class: lod-slide
+---
 
 # Three.js Tool: THREE.LOD
 
-Level of detail selects an appropriate model complexity for the viewing distance.
+<div class="lod-claim">
+  Near objects need detail. <strong>Distant objects usually do not.</strong>
+</div>
+
+<div class="lod-stage">
+  <section class="lod-explainer">
+    <div class="lod-explainer-heading">CLICK A LEVEL · OR DRAG THE CAMERA</div>
+    <div class="lod-code">
+      <span><b>const</b> lod = <b>new</b> THREE.LOD()</span>
+      <span>lod.addLevel(high, <i>0</i>)</span>
+      <span>lod.addLevel(medium, <i>7</i>)</span>
+      <span>lod.addLevel(low, <i>10.5</i>)</span>
+      <span>scene.add(lod)</span>
+    </div>
+    <div class="lod-levels">
+      <button type="button" class="lod-level" :class="{ 'lod-level--active': currentLevelIndex === 0 }" :aria-pressed="currentLevelIndex === 0" @click="selectLevel(0)">
+        <span class="lod-level-dot lod-level-dot--high"></span>
+        <span class="lod-level-info">
+          <strong>HIGH</strong>
+          <span>distance &lt; 7</span>
+        </span>
+        <span class="lod-level-count">
+          <strong>2,420</strong>
+          <span>triangles</span>
+        </span>
+      </button>
+      <button type="button" class="lod-level" :class="{ 'lod-level--active': currentLevelIndex === 1 }" :aria-pressed="currentLevelIndex === 1" @click="selectLevel(1)">
+        <span class="lod-level-dot lod-level-dot--medium"></span>
+        <span class="lod-level-info">
+          <strong>MEDIUM</strong>
+          <span>7 ≤ distance &lt; 10.5</span>
+        </span>
+        <span class="lod-level-count">
+          <strong>320</strong>
+          <span>triangles</span>
+        </span>
+      </button>
+      <button type="button" class="lod-level" :class="{ 'lod-level--active': currentLevelIndex === 2 }" :aria-pressed="currentLevelIndex === 2" @click="selectLevel(2)">
+        <span class="lod-level-dot lod-level-dot--low"></span>
+        <span class="lod-level-info">
+          <strong>LOW</strong>
+          <span>distance ≥ 10.5</span>
+        </span>
+        <span class="lod-level-count">
+          <strong>20</strong>
+          <span>triangles</span>
+        </span>
+      </button>
+    </div>
+  </section>
+  <section class="lod-demo">
+    <div ref="sceneHost" class="lod-scene" role="img" aria-label="A rotating Three.js model changing detail as camera distance changes"></div>
+    <div class="lod-demo-heading">
+      <div>
+        <span>MOVE THE CAMERA</span>
+        Cross a threshold; Three.js swaps the visible mesh.
+      </div>
+      <div class="lod-active-level">
+        <span>ACTIVE</span>
+        <strong>{{ currentLevel.name }}</strong>
+        <small>{{ currentLevel.triangles.toLocaleString() }} triangles</small>
+      </div>
+    </div>
+    <label class="lod-shading-toggle">
+      <input v-model="smoothShading" type="checkbox" />
+      <span>Smooth shading</span>
+    </label>
+    <label class="lod-control" for="lod-distance">
+      <span>NEAR</span>
+      <input
+        id="lod-distance"
+        v-model.number="cameraDistance"
+        type="range"
+        min="4.5"
+        max="13.5"
+        step="0.1"
+      />
+      <span>FAR</span>
+      <output>distance = {{ cameraDistance.toFixed(1) }}</output>
+    </label>
+  </section>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { computed, nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const cameraDistance = ref(5.2)
+const currentLevelIndex = ref(0)
+const smoothShading = ref(false)
+const levelMeta = [
+  { name: 'HIGH', detail: 10, distance: 0, sampleDistance: 5.2, triangles: 2420 },
+  { name: 'MEDIUM', detail: 3, distance: 7, sampleDistance: 8.5, triangles: 320 },
+  { name: 'LOW', detail: 0, distance: 10.5, sampleDistance: 12, triangles: 20 },
+]
+const currentLevel = computed(() => levelMeta[currentLevelIndex.value] ?? levelMeta[0])
+
+let renderer
+let scene
+let camera
+let lod
+let material
+let geometries = []
+let animationFrame
+let resizeObserver
+let reduceMotion = false
+
+function resize() {
+  if (!renderer || !camera || !sceneHost.value) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+}
+
+function animate(time = performance.now()) {
+  if (!renderer || !scene || !camera || !lod) return
+
+  animationFrame = requestAnimationFrame(animate)
+  if (!reduceMotion) lod.rotation.y = time * 0.00035
+  renderer.render(scene, camera)
+
+  const nextLevel = lod.getCurrentLevel()
+  if (currentLevelIndex.value !== nextLevel) currentLevelIndex.value = nextLevel
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  scene = new THREE.Scene()
+  scene.background = new THREE.Color(0x07111f)
+
+  camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
+  camera.position.set(0, 0, cameraDistance.value)
+  camera.lookAt(0, 0, 0)
+
+  material = new THREE.MeshNormalMaterial({ flatShading: !smoothShading.value })
+  lod = new THREE.LOD()
+  lod.rotation.x = 0.18
+  levelMeta.forEach((level) => {
+    const geometry = new THREE.IcosahedronGeometry(1.15, level.detail)
+    geometry.attributes.normal.array.set(geometry.attributes.position.array)
+    geometry.normalizeNormals()
+    geometries.push(geometry)
+    lod.addLevel(new THREE.Mesh(geometry, material), level.distance)
+  })
+  scene.add(lod)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  geometries.forEach((geometry) => geometry.dispose())
+  material?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  geometries = []
+  currentLevelIndex.value = 0
+  renderer = scene = camera = lod = material = animationFrame = resizeObserver = undefined
+}
+
+function selectLevel(index) {
+  cameraDistance.value = levelMeta[index].sampleDistance
+}
+
+watch(cameraDistance, (distance) => {
+  if (camera) camera.position.z = distance
+})
+watch(smoothShading, (smooth) => {
+  if (!material) return
+  material.flatShading = !smooth
+  material.needsUpdate = true
+})
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.lod-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.lod-slide h1 {
+  color: #0f172a;
+}
+
+.lod-claim {
+  color: #334155;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.lod-claim strong {
+  color: #2563eb;
+}
+
+.lod-stage {
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+  display: grid;
+  flex: 1;
+  grid-template-columns: 37% 63%;
+  margin-top: 1rem;
+  min-height: 21rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.lod-explainer {
+  background: #fff;
+  box-sizing: border-box;
+  padding: 1rem 1.15rem;
+}
+
+.lod-explainer-heading {
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.lod-code {
+  background: #0f172a;
+  border-radius: 0.65rem;
+  color: #dbeafe;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.62rem;
+  line-height: 1.6;
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.lod-code span {
+  display: block;
+}
+
+.lod-code b {
+  color: #c084fc;
+  font-weight: 500;
+}
+
+.lod-code i {
+  color: #fdba74;
+  font-style: normal;
+}
+
+.lod-levels {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.lod-level {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.65rem;
+  color: #64748b;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  gap: 0.55rem;
+  grid-template-columns: 0.55rem 1fr auto;
+  padding: 0.52rem 0.6rem;
+  text-align: left;
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+  width: 100%;
+}
+
+.lod-level:hover {
+  border-color: #93c5fd;
+}
+
+.lod-level:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.lod-level--active {
+  background: #eff6ff;
+  border-color: #60a5fa;
+  transform: translateX(0.16rem);
+}
+
+.lod-level-dot {
+  border-radius: 999px;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+.lod-level-dot--high {
+  background: #22d3ee;
+}
+
+.lod-level-dot--medium {
+  background: #818cf8;
+}
+
+.lod-level-dot--low {
+  background: #f59e0b;
+}
+
+.lod-level strong,
+.lod-level span {
+  display: block;
+}
+
+.lod-level-info strong {
+  color: #334155;
+  font-size: 0.7rem;
+}
+
+.lod-level-info > span,
+.lod-level-count > span {
+  font-size: 0.56rem;
+  margin-top: 0.08rem;
+}
+
+.lod-level-count {
+  text-align: right;
+}
+
+.lod-level-count strong {
+  color: #0f172a;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+}
+
+.lod-demo {
+  background: #07111f;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.lod-scene,
+.lod-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.lod-demo-heading {
+  align-items: flex-start;
+  color: #e2e8f0;
+  display: flex;
+  font-size: 0.7rem;
+  justify-content: space-between;
+  left: 1rem;
+  pointer-events: none;
+  position: absolute;
+  right: 1rem;
+  top: 0.9rem;
+  z-index: 2;
+}
+
+.lod-demo-heading > div:first-child > span {
+  color: #67e8f9;
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  margin-bottom: 0.2rem;
+}
+
+.lod-active-level {
+  align-items: baseline;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.55rem;
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.36rem 0.48rem;
+}
+
+.lod-active-level > span {
+  color: #94a3b8;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+}
+
+.lod-active-level strong {
+  color: #67e8f9;
+  font-size: 0.68rem;
+}
+
+.lod-active-level small {
+  color: #cbd5e1;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.56rem;
+}
+
+.lod-shading-toggle {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.62rem;
+  gap: 0.4rem;
+  padding: 0.36rem 0.48rem;
+  position: absolute;
+  right: 1rem;
+  top: 3.4rem;
+  z-index: 2;
+}
+
+.lod-shading-toggle input {
+  accent-color: #22d3ee;
+  cursor: pointer;
+}
+
+.lod-shading-toggle:focus-within {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.lod-control {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.65rem;
+  bottom: 0.8rem;
+  color: #94a3b8;
+  display: grid;
+  font-size: 0.58rem;
+  font-weight: 800;
+  gap: 0.5rem;
+  grid-template-columns: auto 1fr auto auto;
+  left: 1rem;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.65rem;
+  position: absolute;
+  right: 1rem;
+  z-index: 2;
+}
+
+.lod-control input {
+  accent-color: #22d3ee;
+  cursor: pointer;
+  min-width: 0;
+  width: 100%;
+}
+
+.lod-control output {
+  color: #67e8f9;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0;
+  min-width: 5.7rem;
+  text-align: right;
+}
+</style>
+
+<!--
+- Click a level for a representative distance, or drag the slider from 4.5 to 13.5 units away.
+- `THREE.LOD` stores several representations of the same object, ordered by camera distance.
+- The renderer calls `lod.update(camera)` automatically and keeps only the matching level visible.
+- This demo swaps among 2,420, 320, and 20 triangle icosahedrons at distances 7 and 10.5.
+- At a distance, the low-detail silhouette is close enough while requiring far less vertex processing and triangle setup.
+- Only one level renders at a time, so this object still costs one draw call.
+- Smooth shading changes how normals interpolate across those triangles; it does not change the active geometry or triangle count.
+- All geometries remain in memory; LOD trades additional memory and authoring work for lower rendering cost.
+- Real thresholds should be chosen from screen size and profiling, not arbitrary round numbers.
+- Hard switches can pop; use sensible thresholds, hysteresis, or fading when the transition is noticeable.
+- Reduced-motion preferences stop the decorative rotation without disabling the distance control.
+-->
 
 ---
 
