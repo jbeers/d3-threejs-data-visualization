@@ -3847,12 +3847,6 @@ onSlideLeave(disposeScene)
 
 ---
 
-# Animation: FLIP
-
-Use FLIP animations to make layout changes smooth and understandable.
-
----
-
 # What Else Can Three.js Do?
 
 The renderer opens the door to a broader set of GPU-powered tools.
