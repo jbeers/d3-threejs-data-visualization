@@ -3515,10 +3515,335 @@ onSlideLeave(disposeScene)
 -->
 
 ---
+class: idle-motion-slide
+---
 
 # Animation: Idle Motion
 
-Use subtle idle animations to keep the visualization alive.
+<div class="idle-claim">
+  Add life, not meaning. <strong>The data stays exactly the same.</strong>
+</div>
+
+<div class="idle-stage">
+  <div ref="sceneHost" class="idle-scene" role="img" aria-label="The same Three.js data points shown static on the left and with decorative idle motion on the right"></div>
+  <div class="idle-divider" aria-hidden="true"></div>
+  <section class="idle-label idle-label--left">
+    <div class="idle-eyebrow">STATIC</div>
+    <h2>Perfectly still</h2>
+    <div class="idle-motion-badge idle-motion-badge--left">motion = none</div>
+  </section>
+  <section class="idle-label idle-label--right">
+    <div class="idle-eyebrow">IDLE MOTION</div>
+    <h2>Subtle movement</h2>
+    <div class="idle-motion-badge idle-motion-badge--right">decorative only</div>
+  </section>
+  <div class="idle-caption idle-caption--left">fixed position · fixed rotation</div>
+  <div class="idle-caption idle-caption--right">small loop · offset phases · stable anchor</div>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const pointPositions = [
+  new THREE.Vector3(-1.25, 0.55, -0.1),
+  new THREE.Vector3(-0.42, 0.7, -0.3),
+  new THREE.Vector3(0.42, 0.55, 0.05),
+  new THREE.Vector3(1.25, 0.68, -0.2),
+  new THREE.Vector3(-1.05, -0.08, -0.25),
+  new THREE.Vector3(-0.2, 0.02, 0.08),
+  new THREE.Vector3(0.68, -0.08, -0.18),
+  new THREE.Vector3(-0.62, -0.72, 0),
+  new THREE.Vector3(0.22, -0.62, -0.28),
+  new THREE.Vector3(1.08, -0.72, 0.06),
+]
+
+let renderer
+let leftScene
+let rightScene
+let leftCamera
+let rightCamera
+let geometry
+let material
+let grids = []
+let rightStates = []
+let animationFrame
+let resizeObserver
+let reduceMotion = false
+
+function createView(background) {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(background)
+  view.fog = new THREE.Fog(background, 4.5, 8)
+  view.add(new THREE.AmbientLight(0xffffff, 1.25))
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  view.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  view.add(rimLight)
+
+  const grid = new THREE.GridHelper(4.2, 8, 0x334155, 0x1e293b)
+  grid.rotation.x = Math.PI / 2
+  grid.position.z = -1
+  grid.material.transparent = true
+  grid.material.opacity = 0.4
+  view.add(grid)
+  grids.push(grid)
+  return view
+}
+
+function createCamera() {
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0, 4.6)
+  camera.lookAt(0, 0, 0)
+  return camera
+}
+
+function createPoints(view, animated) {
+  pointPositions.forEach((position, index) => {
+    const mesh = new THREE.Mesh(geometry, material)
+    const rotation = new THREE.Euler(0.2 + index * 0.08, 0.3 + index * 0.13, index * 0.04)
+    mesh.position.copy(position)
+    mesh.rotation.copy(rotation)
+    view.add(mesh)
+    if (animated) rightStates.push({ mesh, position, rotation, phase: index * 0.7 })
+  })
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  const leftWidth = Math.floor(width / 2)
+  leftCamera.aspect = leftWidth / height
+  rightCamera.aspect = (width - leftWidth) / height
+  leftCamera.updateProjectionMatrix()
+  rightCamera.updateProjectionMatrix()
+}
+
+function animate(time = performance.now()) {
+  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
+
+  animationFrame = requestAnimationFrame(animate)
+  if (!reduceMotion) {
+    const seconds = time / 1000
+    rightStates.forEach(({ mesh, position, rotation, phase }) => {
+      const wave = seconds * 0.85 + phase
+      mesh.position.x = position.x + Math.cos(wave * 0.8) * 0.02
+      mesh.position.y = position.y + Math.sin(wave) * 0.06
+      mesh.position.z = position.z + Math.sin(wave * 0.65) * 0.04
+      mesh.rotation.x = rotation.x + Math.sin(wave * 0.7) * 0.08
+      mesh.rotation.y = rotation.y + seconds * 0.12
+      mesh.rotation.z = rotation.z + Math.cos(wave * 0.6) * 0.06
+    })
+  }
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  const leftWidth = Math.floor(width / 2)
+  renderer.setScissorTest(true)
+  renderer.setViewport(0, 0, leftWidth, height)
+  renderer.setScissor(0, 0, leftWidth, height)
+  renderer.render(leftScene, leftCamera)
+  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
+  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
+  renderer.render(rightScene, rightCamera)
+  renderer.setScissorTest(false)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  leftScene = createView(0x081426)
+  rightScene = createView(0x0a1d2d)
+  leftCamera = createCamera()
+  rightCamera = createCamera()
+  geometry = new THREE.BoxGeometry(0.36, 0.36, 0.36)
+  material = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    metalness: 0.15,
+    roughness: 0.35,
+  })
+  createPoints(leftScene, false)
+  createPoints(rightScene, true)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  grids.forEach((grid) => {
+    grid.geometry.dispose()
+    grid.material.dispose()
+  })
+  geometry?.dispose()
+  material?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  grids = []
+  rightStates = []
+  renderer = leftScene = rightScene = leftCamera = rightCamera = geometry = material = animationFrame = resizeObserver = undefined
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.idle-motion-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.idle-motion-slide h1 {
+  color: #0f172a;
+}
+
+.idle-claim {
+  color: #334155;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.idle-claim strong {
+  color: #2563eb;
+}
+
+.idle-stage {
+  background: #081426;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  flex: 1;
+  margin-top: 1rem;
+  min-height: 21rem;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.idle-scene,
+.idle-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.idle-divider {
+  background: rgba(148, 163, 184, 0.3);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 1;
+}
+
+.idle-label {
+  color: #f8fafc;
+  pointer-events: none;
+  position: absolute;
+  top: 1rem;
+  width: calc(50% - 2.5rem);
+  z-index: 2;
+}
+
+.idle-label--left {
+  left: 1.25rem;
+}
+
+.idle-label--right {
+  left: calc(50% + 1.25rem);
+}
+
+.idle-eyebrow {
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.idle-label h2 {
+  color: #fff;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.idle-motion-badge {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  padding: 0.3rem 0.45rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.idle-motion-badge--left {
+  color: #cbd5e1;
+}
+
+.idle-motion-badge--right {
+  color: #93c5fd;
+}
+
+.idle-caption {
+  bottom: 0.8rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  position: absolute;
+  z-index: 2;
+}
+
+.idle-caption--left {
+  left: 1.25rem;
+}
+
+.idle-caption--right {
+  left: calc(50% + 1.25rem);
+}
+</style>
+
+<!--
+- Both sides render identical marks in identical anchored positions.
+- The right adds a small looping bob and rotation; none of it is mapped to data.
+- Every mark uses the same amplitude and speed with offset phases, so the motion feels organic rather than synchronized.
+- Keep idle movement slow and low-amplitude so it does not compete with the visualization.
+- Motion should orbit a stable anchor so viewers do not mistake it for a changing value.
+- The demo becomes static when the user prefers reduced motion.
+- Stop animation work when the visualization is offscreen or hidden.
+-->
 
 ---
 
