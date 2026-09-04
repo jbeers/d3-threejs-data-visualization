@@ -6237,10 +6237,812 @@ onSlideLeave(disposeScene)
 -->
 
 ---
+class: gpu-pick-slide
+---
 
 # Three.js Tool: GPU Picking
 
-GPU picking efficiently identifies which rendered object a user selects.
+<div class="gpu-pick-claim">
+  Render object IDs offscreen. <strong>One cursor pixel identifies the datum.</strong>
+</div>
+
+<div class="gpu-pick-shell">
+  <aside class="gpu-pick-explainer">
+    <div class="gpu-pick-kicker">GPU X-RAY</div>
+    <h2>Render IDs,<br>not colors</h2>
+    <div class="gpu-pick-code" aria-label="Three.js GPU picking code">
+      <span>mesh.material = <b>idMaterial</b></span>
+      <span>renderer.setRenderTarget(ids)</span>
+      <span>renderer.render(scene, camera)</span>
+      <span>renderer.readRenderTargetPixels(…)</span>
+    </div>
+    <div class="gpu-pick-decode" aria-live="polite">
+      <span>CURSOR PIXEL</span>
+      <div>
+        <i :style="{ backgroundColor: gpuPickColor }"></i>
+        <code>{{ gpuPickRgb }}</code>
+      </div>
+      <strong>{{ gpuPickSelectedId ? `ID ${gpuPickSelectedId.toLocaleString()}` : 'background' }}</strong>
+      <small>{{ gpuPickRecordLabel }}</small>
+    </div>
+    <div class="gpu-pick-fact">
+      <strong>20,000</strong>
+      <span>instanced data marks</span>
+    </div>
+  </aside>
+  <section
+    ref="gpuPickStageRef"
+    class="gpu-pick-demo"
+    :class="{ 'is-locked': gpuPickLocked }"
+    tabindex="0"
+    aria-label="Interactive GPU picking demo. Move the pointer or use arrow keys to scan the data terrain. Click, Enter, or Space to lock a selection."
+    @pointermove="handleGpuPickPointer"
+    @pointerleave="hideGpuPickLens"
+    @click="toggleGpuPickLock"
+    @focus="showGpuPickLens"
+    @keydown="handleGpuPickKeydown"
+  >
+    <div ref="gpuPickHostRef" class="gpu-pick-scene" aria-hidden="true"></div>
+    <div class="gpu-pick-heading">
+      <div>
+        <span>VISIBLE PASS</span>
+        3D data terrain
+      </div>
+      <div class="gpu-pick-badges">
+        <span>20,000 marks</span>
+        <strong>RGB → ID</strong>
+      </div>
+    </div>
+    <div
+      ref="gpuPickLensRef"
+      class="gpu-pick-lens"
+      :class="{ 'is-visible': gpuPickLensVisible }"
+      aria-hidden="true"
+    >
+      <canvas ref="gpuPickLensCanvasRef" width="25" height="25"></canvas>
+      <i class="gpu-pick-crosshair"></i>
+      <span>ID BUFFER</span>
+    </div>
+    <div class="gpu-pick-hint">
+      {{ gpuPickLocked ? 'LOCKED · click to resume scanning' : 'MOVE TO SCAN · click to lock' }}
+    </div>
+  </section>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const gpuPickStageRef = ref(null)
+const gpuPickHostRef = ref(null)
+const gpuPickLensRef = ref(null)
+const gpuPickLensCanvasRef = ref(null)
+const gpuPickSelectedId = ref(0)
+const gpuPickRgb = ref('rgb(0, 0, 0)')
+const gpuPickColor = ref('#000000')
+const gpuPickRecordLabel = ref('Move over the terrain')
+const gpuPickLocked = ref(false)
+const gpuPickLensVisible = ref(false)
+
+const gpuPickCount = 20000
+const gpuPickColumns = 160
+const gpuPickRows = 125
+const gpuPickSampleSize = 25
+
+const gpuPickIdVertexShader = `
+  attribute vec3 aPickColor;
+  varying vec3 vPickColor;
+
+  void main() {
+    vPickColor = aPickColor;
+    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix
+      * vec4(position, 1.0);
+  }
+`
+
+const gpuPickIdFragmentShader = `
+  varying vec3 vPickColor;
+
+  void main() {
+    gl_FragColor = vec4(vPickColor, 1.0);
+  }
+`
+
+let gpuPickRenderer
+let gpuPickScene
+let gpuPickCamera
+let gpuPickVisibleMesh
+let gpuPickMarker
+let gpuPickGrid
+let gpuPickCubeGeometry
+let gpuPickVisibleMaterial
+let gpuPickIdMaterial
+let gpuPickMarkerGeometry
+let gpuPickMarkerMaterial
+let gpuPickTarget
+let gpuPickResizeObserver
+let gpuPickFrame
+let gpuPickImageData
+const gpuPickPixels = new Uint8Array(gpuPickSampleSize * gpuPickSampleSize * 4)
+let gpuPickRecords = []
+let gpuPickColorToId = new Map()
+let gpuPickPointerX = 0
+let gpuPickPointerY = 0
+
+function clampGpuPick(value, minimum, maximum) {
+  return Math.max(minimum, Math.min(maximum, value))
+}
+
+function positionGpuPickLens() {
+  if (!gpuPickStageRef.value || !gpuPickLensRef.value) return
+  const halfLens = 58
+  const x = clampGpuPick(gpuPickPointerX, halfLens, gpuPickStageRef.value.clientWidth - halfLens)
+  const y = clampGpuPick(gpuPickPointerY, halfLens, gpuPickStageRef.value.clientHeight - halfLens)
+  gpuPickLensRef.value.style.left = `${x}px`
+  gpuPickLensRef.value.style.top = `${y}px`
+}
+
+function setGpuPickPointer(x, y) {
+  if (!gpuPickStageRef.value) return
+  gpuPickPointerX = clampGpuPick(x, 0, gpuPickStageRef.value.clientWidth)
+  gpuPickPointerY = clampGpuPick(y, 0, gpuPickStageRef.value.clientHeight)
+  gpuPickLensVisible.value = true
+  positionGpuPickLens()
+  scheduleGpuPick()
+}
+
+function handleGpuPickPointer(event) {
+  if (gpuPickLocked.value || !gpuPickStageRef.value) return
+  const bounds = gpuPickStageRef.value.getBoundingClientRect()
+  setGpuPickPointer(
+    ((event.clientX - bounds.left) / bounds.width) * gpuPickStageRef.value.clientWidth,
+    ((event.clientY - bounds.top) / bounds.height) * gpuPickStageRef.value.clientHeight,
+  )
+}
+
+function hideGpuPickLens() {
+  if (!gpuPickLocked.value) gpuPickLensVisible.value = false
+}
+
+function showGpuPickLens() {
+  if (!gpuPickStageRef.value) return
+  if (!gpuPickPointerX && !gpuPickPointerY) {
+    gpuPickPointerX = gpuPickStageRef.value.clientWidth * 0.58
+    gpuPickPointerY = gpuPickStageRef.value.clientHeight * 0.55
+  }
+  gpuPickLensVisible.value = true
+  positionGpuPickLens()
+  scheduleGpuPick()
+}
+
+function toggleGpuPickLock() {
+  showGpuPickLens()
+  gpuPickLocked.value = !gpuPickLocked.value
+}
+
+function handleGpuPickKeydown(event) {
+  const movement = 14
+  const offsets = {
+    ArrowLeft: [-movement, 0],
+    ArrowRight: [movement, 0],
+    ArrowUp: [0, -movement],
+    ArrowDown: [0, movement],
+  }
+
+  if (offsets[event.key]) {
+    event.preventDefault()
+    gpuPickLocked.value = false
+    setGpuPickPointer(
+      gpuPickPointerX + offsets[event.key][0],
+      gpuPickPointerY + offsets[event.key][1],
+    )
+  } else if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    toggleGpuPickLock()
+  }
+}
+
+function scheduleGpuPick() {
+  if (gpuPickFrame || !gpuPickRenderer) return
+  gpuPickFrame = requestAnimationFrame(() => {
+    gpuPickFrame = undefined
+    renderGpuPickTarget()
+  })
+}
+
+function drawGpuPickLens(pixels) {
+  const canvas = gpuPickLensCanvasRef.value
+  const context = canvas?.getContext('2d')
+  if (!context) return
+
+  if (!gpuPickImageData) gpuPickImageData = context.createImageData(gpuPickSampleSize, gpuPickSampleSize)
+  const rowLength = gpuPickSampleSize * 4
+  for (let row = 0; row < gpuPickSampleSize; row++) {
+    const source = (gpuPickSampleSize - row - 1) * rowLength
+    gpuPickImageData.data.set(
+      pixels.subarray(source, source + rowLength),
+      row * rowLength,
+    )
+  }
+  context.putImageData(gpuPickImageData, 0, 0)
+}
+
+function selectGpuPickPixel(pixels) {
+  const middle = Math.floor(gpuPickSampleSize / 2)
+  const offset = (middle * gpuPickSampleSize + middle) * 4
+  const red = pixels[offset]
+  const green = pixels[offset + 1]
+  const blue = pixels[offset + 2]
+  const colorCode = (red << 16) | (green << 8) | blue
+  const id = gpuPickColorToId.get(colorCode) || 0
+
+  gpuPickRgb.value = `rgb(${red}, ${green}, ${blue})`
+  gpuPickColor.value = `#${colorCode.toString(16).padStart(6, '0')}`
+  gpuPickSelectedId.value = id
+
+  const record = gpuPickRecords[id]
+  if (!record) {
+    gpuPickRecordLabel.value = 'No mark at this pixel'
+    if (gpuPickMarker) gpuPickMarker.visible = false
+    return
+  }
+
+  gpuPickRecordLabel.value = `value ${Math.round(record.value * 100)}% · cell ${record.column}, ${record.row}`
+  gpuPickMarker.visible = true
+  gpuPickMarker.position.set(record.x, record.y, record.z)
+  gpuPickMarker.scale.set(record.width * 2.4, record.height + 0.08, record.depth * 2.4)
+}
+
+function renderGpuPickScene() {
+  if (!gpuPickRenderer || !gpuPickScene || !gpuPickCamera) return
+  gpuPickRenderer.setRenderTarget(null)
+  gpuPickRenderer.render(gpuPickScene, gpuPickCamera)
+}
+
+function renderGpuPickTarget() {
+  if (!gpuPickRenderer || !gpuPickScene || !gpuPickCamera || !gpuPickTarget || !gpuPickHostRef.value) return
+
+  const drawingWidth = gpuPickRenderer.domElement.width
+  const drawingHeight = gpuPickRenderer.domElement.height
+  const scaleX = drawingWidth / gpuPickHostRef.value.clientWidth
+  const scaleY = drawingHeight / gpuPickHostRef.value.clientHeight
+  const halfSample = Math.floor(gpuPickSampleSize / 2)
+  const offsetX = clampGpuPick(
+    Math.round(gpuPickPointerX * scaleX) - halfSample,
+    0,
+    drawingWidth - gpuPickSampleSize,
+  )
+  const offsetY = clampGpuPick(
+    Math.round(gpuPickPointerY * scaleY) - halfSample,
+    0,
+    drawingHeight - gpuPickSampleSize,
+  )
+
+  gpuPickCamera.setViewOffset(
+    drawingWidth,
+    drawingHeight,
+    offsetX,
+    offsetY,
+    gpuPickSampleSize,
+    gpuPickSampleSize,
+  )
+  gpuPickVisibleMesh.material = gpuPickIdMaterial
+  gpuPickGrid.visible = false
+  gpuPickMarker.visible = false
+  gpuPickScene.background.set(0x000000)
+  gpuPickRenderer.setRenderTarget(gpuPickTarget)
+  gpuPickRenderer.render(gpuPickScene, gpuPickCamera)
+
+  gpuPickRenderer.readRenderTargetPixels(
+    gpuPickTarget,
+    0,
+    0,
+    gpuPickSampleSize,
+    gpuPickSampleSize,
+    gpuPickPixels,
+  )
+
+  gpuPickCamera.clearViewOffset()
+  gpuPickVisibleMesh.material = gpuPickVisibleMaterial
+  gpuPickGrid.visible = true
+  gpuPickScene.background.set(0x020617)
+  drawGpuPickLens(gpuPickPixels)
+  selectGpuPickPixel(gpuPickPixels)
+  renderGpuPickScene()
+}
+
+function resizeGpuPickScene() {
+  if (!gpuPickRenderer || !gpuPickCamera || !gpuPickHostRef.value) return
+  const width = gpuPickHostRef.value.clientWidth
+  const height = gpuPickHostRef.value.clientHeight
+  if (!width || !height) return
+
+  gpuPickRenderer.setSize(width, height, false)
+  gpuPickCamera.aspect = width / height
+  gpuPickCamera.updateProjectionMatrix()
+  renderGpuPickScene()
+  if (gpuPickLensVisible.value) scheduleGpuPick()
+}
+
+function createGpuPickScene() {
+  if (gpuPickRenderer || !gpuPickHostRef.value || !gpuPickStageRef.value) return
+
+  gpuPickScene = new THREE.Scene()
+  gpuPickScene.background = new THREE.Color(0x020617)
+
+  gpuPickCamera = new THREE.PerspectiveCamera(38, 1, 0.1, 20)
+  gpuPickCamera.position.set(0, 3.25, 5.2)
+  gpuPickCamera.lookAt(0, -0.42, -0.15)
+
+  gpuPickCubeGeometry = new THREE.BoxGeometry(1, 1, 1)
+  const pickColors = new Float32Array(gpuPickCount * 3)
+  gpuPickCubeGeometry.setAttribute(
+    'aPickColor',
+    new THREE.InstancedBufferAttribute(pickColors, 3),
+  )
+
+  gpuPickVisibleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
+  gpuPickIdMaterial = new THREE.ShaderMaterial({
+    vertexShader: gpuPickIdVertexShader,
+    fragmentShader: gpuPickIdFragmentShader,
+    toneMapped: false,
+  })
+  gpuPickVisibleMesh = new THREE.InstancedMesh(
+    gpuPickCubeGeometry,
+    gpuPickVisibleMaterial,
+    gpuPickCount,
+  )
+  gpuPickVisibleMesh.frustumCulled = false
+
+  const dummy = new THREE.Object3D()
+  const visibleColor = new THREE.Color()
+  const terrainWidth = 5.3
+  const terrainDepth = 3.5
+  const cellWidth = terrainWidth / gpuPickColumns
+  const cellDepth = terrainDepth / gpuPickRows
+  const baseY = -0.72
+  gpuPickRecords = Array(gpuPickCount + 1)
+  gpuPickColorToId = new Map()
+
+  for (let index = 0; index < gpuPickCount; index++) {
+    const id = index + 1
+    const column = index % gpuPickColumns
+    const row = Math.floor(index / gpuPickColumns)
+    const x = (column / (gpuPickColumns - 1) - 0.5) * terrainWidth
+    const z = (row / (gpuPickRows - 1) - 0.5) * terrainDepth
+    const noise = Math.sin(id * 12.9898) * 43758.5453
+    const grain = noise - Math.floor(noise)
+    const value = clampGpuPick(
+      0.48
+        + Math.sin(x * 1.8 + z * 0.7) * 0.20
+        + Math.cos(z * 3.2 - x * 0.45) * 0.16
+        + Math.sin((x * x + z * z) * 1.7) * 0.08
+        + (grain - 0.5) * 0.08,
+      0.04,
+      0.96,
+    )
+    const height = 0.05 + value * 0.52
+    const width = cellWidth * 0.76
+    const depth = cellDepth * 0.76
+    const y = baseY + height / 2
+
+    dummy.position.set(x, y, z)
+    dummy.scale.set(width, height, depth)
+    dummy.updateMatrix()
+    gpuPickVisibleMesh.setMatrixAt(index, dummy.matrix)
+
+    visibleColor.setHSL(0.52 + value * 0.25, 0.88, 0.42 + value * 0.16)
+    gpuPickVisibleMesh.setColorAt(index, visibleColor)
+
+    const colorCode = Math.imul(id, 0x9e3779) & 0xffffff
+    pickColors[index * 3] = ((colorCode >> 16) & 255) / 255
+    pickColors[index * 3 + 1] = ((colorCode >> 8) & 255) / 255
+    pickColors[index * 3 + 2] = (colorCode & 255) / 255
+    gpuPickColorToId.set(colorCode, id)
+    gpuPickRecords[id] = {
+      column,
+      row,
+      x,
+      y,
+      z,
+      width,
+      height,
+      depth,
+      value,
+    }
+  }
+
+  gpuPickVisibleMesh.instanceMatrix.needsUpdate = true
+  gpuPickVisibleMesh.instanceColor.needsUpdate = true
+  gpuPickCubeGeometry.getAttribute('aPickColor').needsUpdate = true
+  gpuPickScene.add(gpuPickVisibleMesh)
+
+
+  gpuPickGrid = new THREE.GridHelper(6, 24, 0x1e40af, 0x1e293b)
+  gpuPickGrid.position.y = baseY - 0.01
+  gpuPickGrid.material.transparent = true
+  gpuPickGrid.material.opacity = 0.4
+  gpuPickScene.add(gpuPickGrid)
+
+  gpuPickMarkerGeometry = new THREE.EdgesGeometry(gpuPickCubeGeometry)
+  gpuPickMarkerMaterial = new THREE.LineBasicMaterial({
+    color: 0xfde047,
+    depthTest: false,
+  })
+  gpuPickMarker = new THREE.LineSegments(gpuPickMarkerGeometry, gpuPickMarkerMaterial)
+  gpuPickMarker.visible = false
+  gpuPickMarker.renderOrder = 3
+  gpuPickScene.add(gpuPickMarker)
+
+  gpuPickTarget = new THREE.WebGLRenderTarget(gpuPickSampleSize, gpuPickSampleSize, {
+    minFilter: THREE.NearestFilter,
+    magFilter: THREE.NearestFilter,
+    depthBuffer: true,
+  })
+  gpuPickTarget.texture.colorSpace = THREE.NoColorSpace
+
+  gpuPickRenderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+  gpuPickRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  gpuPickRenderer.outputColorSpace = THREE.SRGBColorSpace
+  gpuPickRenderer.domElement.setAttribute('aria-hidden', 'true')
+  gpuPickHostRef.value.appendChild(gpuPickRenderer.domElement)
+
+  gpuPickResizeObserver = new ResizeObserver(resizeGpuPickScene)
+  gpuPickResizeObserver.observe(gpuPickHostRef.value)
+  resizeGpuPickScene()
+  showGpuPickLens()
+}
+
+function disposeGpuPickScene() {
+  if (gpuPickFrame) cancelAnimationFrame(gpuPickFrame)
+  gpuPickResizeObserver?.disconnect()
+  gpuPickCubeGeometry?.dispose()
+  gpuPickVisibleMaterial?.dispose()
+  gpuPickIdMaterial?.dispose()
+  gpuPickMarkerGeometry?.dispose()
+  gpuPickMarkerMaterial?.dispose()
+  gpuPickGrid?.geometry.dispose()
+  gpuPickGrid?.material.dispose()
+  gpuPickTarget?.dispose()
+  gpuPickRenderer?.dispose()
+  gpuPickRenderer?.domElement.remove()
+
+  gpuPickSelectedId.value = 0
+  gpuPickRgb.value = 'rgb(0, 0, 0)'
+  gpuPickColor.value = '#000000'
+  gpuPickRecordLabel.value = 'Move over the terrain'
+  gpuPickLocked.value = false
+  gpuPickLensVisible.value = false
+  gpuPickRecords = []
+  gpuPickColorToId.clear()
+  gpuPickImageData = undefined
+  gpuPickPointerX = gpuPickPointerY = 0
+  gpuPickRenderer = gpuPickScene = gpuPickCamera = gpuPickVisibleMesh = gpuPickMarker = gpuPickGrid = gpuPickCubeGeometry = gpuPickVisibleMaterial = gpuPickIdMaterial = gpuPickMarkerGeometry = gpuPickMarkerMaterial = gpuPickTarget = gpuPickResizeObserver = gpuPickFrame = undefined
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  createGpuPickScene()
+})
+onSlideLeave(disposeGpuPickScene)
+</script>
+
+<style>
+.gpu-pick-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.gpu-pick-slide h1 {
+  color: #0f172a;
+}
+
+.gpu-pick-claim {
+  color: #334155;
+  font-size: 1.42rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.gpu-pick-claim strong {
+  color: #2563eb;
+}
+
+.gpu-pick-shell {
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  display: grid;
+  flex: 1;
+  grid-template-columns: 28% 72%;
+  margin-top: 1rem;
+  min-height: 21rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.gpu-pick-explainer {
+  background: #fff;
+  box-sizing: border-box;
+  padding: 1.1rem 1rem;
+}
+
+.gpu-pick-kicker {
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+
+.gpu-pick-explainer h2 {
+  color: #0f172a;
+  font-size: 1.1rem;
+  line-height: 1.2;
+  margin: 0.25rem 0 0;
+}
+
+.gpu-pick-code {
+  background: #0f172a;
+  border-radius: 0.65rem;
+  color: #dbeafe;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.53rem;
+  line-height: 1.6;
+  margin-top: 0.65rem;
+  padding: 0.62rem 0.65rem;
+}
+
+.gpu-pick-code span {
+  display: block;
+}
+
+.gpu-pick-code b {
+  color: #c084fc;
+  font-weight: 500;
+}
+
+.gpu-pick-code i {
+  color: #67e8f9;
+  font-style: normal;
+}
+
+.gpu-pick-decode {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.7rem 0.2rem 0.65rem;
+}
+
+.gpu-pick-decode > span {
+  color: #64748b;
+  display: block;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.gpu-pick-decode > div {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.gpu-pick-decode i {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.2rem;
+  display: block;
+  height: 1rem;
+  width: 1rem;
+}
+
+.gpu-pick-decode code {
+  color: #475569;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.53rem;
+}
+
+.gpu-pick-decode strong {
+  color: #2563eb;
+  display: block;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.84rem;
+  margin-top: 0.3rem;
+}
+
+.gpu-pick-decode small {
+  color: #64748b;
+  display: block;
+  font-size: 0.53rem;
+  line-height: 1.35;
+  margin-top: 0.15rem;
+  min-height: 1.4rem;
+}
+
+.gpu-pick-fact {
+  align-items: baseline;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.72rem 0.2rem;
+}
+
+.gpu-pick-fact strong {
+  color: #2563eb;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9rem;
+}
+
+.gpu-pick-fact span {
+  color: #64748b;
+  font-size: 0.62rem;
+}
+
+.gpu-pick-demo {
+  background: #020617;
+  cursor: crosshair;
+  min-width: 0;
+  outline: none;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+.gpu-pick-demo:focus-visible {
+  box-shadow: inset 0 0 0 3px #38bdf8;
+}
+
+.gpu-pick-demo.is-locked {
+  cursor: default;
+}
+
+.gpu-pick-scene,
+.gpu-pick-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.gpu-pick-heading {
+  align-items: flex-start;
+  color: #e2e8f0;
+  display: flex;
+  font-size: 0.68rem;
+  justify-content: space-between;
+  left: 1rem;
+  pointer-events: none;
+  position: absolute;
+  right: 1rem;
+  top: 0.9rem;
+  z-index: 2;
+}
+
+.gpu-pick-heading > div:first-child > span {
+  color: #38bdf8;
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  margin-bottom: 0.2rem;
+}
+
+.gpu-pick-badges {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.gpu-pick-badges span,
+.gpu-pick-badges strong {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.4rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.55rem;
+  font-weight: 500;
+  padding: 0.28rem 0.38rem;
+}
+
+.gpu-pick-badges strong {
+  color: #67e8f9;
+}
+
+.gpu-pick-lens {
+  border: 3px solid #67e8f9;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(2, 6, 23, 0.8), 0 0 28px rgba(34, 211, 238, 0.45);
+  height: 7.1rem;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  transform: translate(-50%, -50%) scale(0.88);
+  transition: opacity 120ms ease, transform 120ms ease;
+  width: 7.1rem;
+  z-index: 4;
+}
+
+.gpu-pick-lens.is-visible {
+  opacity: 0.96;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.gpu-pick-demo.is-locked .gpu-pick-lens {
+  border-color: #fde047;
+  box-shadow: 0 0 0 4px rgba(2, 6, 23, 0.8), 0 0 30px rgba(250, 204, 21, 0.5);
+}
+
+.gpu-pick-lens canvas {
+  height: 100%;
+  image-rendering: pixelated;
+  position: absolute;
+  width: 100%;
+}
+
+.gpu-pick-crosshair::before,
+.gpu-pick-crosshair::after {
+  background: rgba(255, 255, 255, 0.92);
+  content: '';
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.gpu-pick-crosshair::before {
+  height: 1px;
+  width: 1.25rem;
+}
+
+.gpu-pick-crosshair::after {
+  height: 1.25rem;
+  width: 1px;
+}
+
+.gpu-pick-lens > span {
+  background: rgba(2, 6, 23, 0.82);
+  bottom: 0.45rem;
+  color: #fff;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.48rem;
+  left: 50%;
+  letter-spacing: 0.08em;
+  padding: 0.16rem 0.28rem;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+.gpu-pick-hint {
+  bottom: 0.9rem;
+  color: #64748b;
+  font-size: 0.54rem;
+  font-weight: 800;
+  left: 1rem;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+</style>
+
+<!--
+- The same `InstancedMesh` is rendered with its visible material, then on demand with an ID material into the offscreen target.
+- The ID material outputs a unique 24-bit RGB value for each instance, with lighting and tone mapping disabled.
+- A depth buffer ensures the frontmost visible mark supplies the cursor pixel.
+- The lens magnifies a real 25 × 25 offscreen render so the audience can see the otherwise-hidden ID pass.
+- Only the center pixel selects the datum; production code can reduce the render target and readback to 1 × 1.
+- `camera.setViewOffset()` renders only the tiny region surrounding the cursor instead of redrawing a full-size ID buffer.
+- `readRenderTargetPixels()` is synchronous and can stall the pipeline, so pointer events are coalesced to one read per animation frame.
+- For a small number of ordinary meshes, `Raycaster` is simpler; GPU picking earns its complexity at high counts or with custom GPU geometry.
+- Clicking locks the scanner, while arrow keys and Enter or Space provide keyboard access.
+- Dispose both materials, shared geometry, marker geometry, render target, and renderer when leaving the slide.
+-->
 
 ---
 
