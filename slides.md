@@ -1476,10 +1476,460 @@ onSlideLeave(disposeScene)
 </script>
 
 ---
+class: instancing-slide
+---
 
 # Optimization One: InstancedMesh
 
-Instancing stores shared geometry once and batches many object transforms into one GPU draw call.
+<div class="instancing-claim">
+  <strong>One shape.</strong> Many copies. <strong>One draw call.</strong>
+</div>
+
+<div class="instancing-scene-stage">
+  <div ref="sceneHost" class="instancing-scene" role="img" aria-label="The same 3D markers rendered with separate meshes on the left and instancing on the right"></div>
+  <div class="instancing-scene-divider" aria-hidden="true"></div>
+  <div class="instancing-side-label instancing-side-label--left">
+    <div class="instancing-eyebrow">WITHOUT INSTANCING</div>
+    <h2>One mesh + material per marker</h2>
+  </div>
+  <div class="instancing-side-label instancing-side-label--right">
+    <div class="instancing-eyebrow">WITH INSTANCING</div>
+    <h2>One <code>InstancedMesh</code></h2>
+  </div>
+  <div class="instancing-side-stats instancing-side-stats--left">
+    <div class="instancing-counter" aria-live="polite">
+      <div class="instancing-counter-item"><strong>{{ markerCount }}</strong><span>{{ markerCount === 1 ? 'Mesh' : 'Meshes' }}</span></div>
+      <span class="instancing-counter-plus">+</span>
+      <div class="instancing-counter-item"><strong>{{ markerCount }}</strong><span>{{ markerCount === 1 ? 'Material' : 'Materials' }}</span></div>
+    </div>
+    <div class="instancing-draw-count">{{ markerCount }} draw {{ markerCount === 1 ? 'call' : 'calls' }}</div>
+  </div>
+  <div class="instancing-side-stats instancing-side-stats--right">
+    <div class="instancing-counter" aria-live="polite">
+      <div class="instancing-counter-item"><strong>1</strong><span>InstancedMesh</span></div>
+      <span class="instancing-counter-plus">+</span>
+      <div class="instancing-counter-item"><strong>1</strong><span>Material</span></div>
+    </div>
+    <div class="instancing-draw-count">1 draw call</div>
+  </div>
+</div>
+
+<div class="instancing-controls">
+  <label for="instancing-count">Markers</label>
+  <span class="instancing-range-bound">1</span>
+  <input id="instancing-count" v-model.number="markerCount" type="range" min="1" max="5" step="1" :aria-label="'Number of markers: ' + markerCount" />
+  <span class="instancing-range-bound">5</span>
+  <output for="instancing-count" aria-live="polite">{{ markerCount }}</output>
+</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const markerCount = ref(3)
+const markerPositions = [
+  new THREE.Vector3(-1.3, 0.05, 0.25),
+  new THREE.Vector3(-0.62, -0.45, -0.45),
+  new THREE.Vector3(0.05, 0.2, -0.9),
+  new THREE.Vector3(0.75, -0.45, -0.1),
+  new THREE.Vector3(1.32, -0.1, -0.7),
+]
+const markerScales = [1, 0.82, 1.12, 0.9, 0.76]
+const markerColors = [0x38bdf8, 0x818cf8, 0xf472b6, 0xfbbf24, 0x34d399]
+
+let renderer
+let leftScene
+let rightScene
+let leftCamera
+let rightCamera
+let leftGroup
+let rightGroup
+let geometry
+let rightMaterial
+let rightMesh
+let leftMeshes = []
+let animationFrame
+let resizeObserver
+
+function createView(background) {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(background)
+  view.fog = new THREE.Fog(background, 4.5, 9)
+  view.add(new THREE.AmbientLight(0xffffff, 1.25))
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  view.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  view.add(rimLight)
+  return view
+}
+
+function createCamera() {
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0.35, 5.5)
+  camera.lookAt(0, 0, 0)
+  return camera
+}
+
+function updateInstances() {
+  if (!geometry || !leftGroup || !rightGroup) return
+
+  leftMeshes.forEach((mesh) => {
+    mesh.removeFromParent()
+    mesh.material.dispose()
+  })
+  leftMeshes = []
+
+  rightMesh?.removeFromParent()
+  rightMaterial?.dispose()
+  rightMesh = undefined
+  rightMaterial = undefined
+
+  for (let index = 0; index < markerCount.value; index++) {
+    const material = new THREE.MeshStandardMaterial({
+      color: markerColors[index],
+      metalness: 0.15,
+      roughness: 0.35,
+    })
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.position.copy(markerPositions[index])
+    mesh.rotation.set(0.2 + index * 0.17, index * 0.45, index * 0.12)
+    mesh.scale.setScalar(markerScales[index])
+    leftGroup.add(mesh)
+    leftMeshes.push(mesh)
+  }
+
+  rightMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.15,
+    roughness: 0.35,
+  })
+  rightMesh = new THREE.InstancedMesh(geometry, rightMaterial, markerCount.value)
+
+  const matrix = new THREE.Matrix4()
+  const rotation = new THREE.Quaternion()
+  const scale = new THREE.Vector3()
+  for (let index = 0; index < markerCount.value; index++) {
+    rotation.setFromEuler(new THREE.Euler(0.2 + index * 0.17, index * 0.45, index * 0.12))
+    scale.setScalar(markerScales[index])
+    matrix.compose(markerPositions[index], rotation, scale)
+    rightMesh.setMatrixAt(index, matrix)
+    rightMesh.setColorAt(index, new THREE.Color(markerColors[index]))
+  }
+  rightMesh.instanceMatrix.needsUpdate = true
+  rightMesh.instanceColor.needsUpdate = true
+  rightGroup.add(rightMesh)
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  const leftWidth = Math.floor(width / 2)
+  leftCamera.aspect = leftWidth / height
+  rightCamera.aspect = (width - leftWidth) / height
+  leftCamera.updateProjectionMatrix()
+  rightCamera.updateProjectionMatrix()
+}
+
+function renderViews() {
+  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
+
+  animationFrame = requestAnimationFrame(renderViews)
+  leftGroup.rotation.y += 0.004
+  rightGroup.rotation.y += 0.004
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  const leftWidth = Math.floor(width / 2)
+  renderer.setScissorTest(true)
+  renderer.setViewport(0, 0, leftWidth, height)
+  renderer.setScissor(0, 0, leftWidth, height)
+  renderer.render(leftScene, leftCamera)
+  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
+  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
+  renderer.render(rightScene, rightCamera)
+  renderer.setScissorTest(false)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  leftScene = createView(0x081426)
+  rightScene = createView(0x0a1d2d)
+  leftCamera = createCamera()
+  rightCamera = createCamera()
+  leftGroup = new THREE.Group()
+  rightGroup = new THREE.Group()
+  leftScene.add(leftGroup)
+  rightScene.add(rightGroup)
+
+  geometry = new THREE.IcosahedronGeometry(0.34, 2)
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  updateInstances()
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  renderViews()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  leftMeshes.forEach((mesh) => mesh.material.dispose())
+  rightMaterial?.dispose()
+  geometry?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  leftMeshes = []
+  renderer = leftScene = rightScene = leftCamera = rightCamera = leftGroup = rightGroup = geometry = rightMaterial = rightMesh = animationFrame = resizeObserver = undefined
+}
+
+watch(markerCount, updateInstances)
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.instancing-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.instancing-slide h1 {
+  color: #0f172a;
+}
+
+.instancing-claim {
+  color: #334155;
+  font-size: 1.65rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.instancing-claim strong:last-child {
+  color: #2563eb;
+}
+
+.instancing-scene-stage {
+  background: #081426;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  flex: 1;
+  margin-top: 1rem;
+  min-height: 18rem;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.instancing-scene,
+.instancing-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.instancing-scene-divider {
+  background: rgba(148, 163, 184, 0.3);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 1;
+}
+
+.instancing-side-label {
+  color: #f8fafc;
+  pointer-events: none;
+  position: absolute;
+  top: 1rem;
+  width: calc(50% - 2.5rem);
+  z-index: 2;
+}
+
+.instancing-side-label--left {
+  left: 1.25rem;
+}
+
+.instancing-side-label--right {
+  left: calc(50% + 1.25rem);
+}
+
+.instancing-side-stats {
+  align-items: flex-end;
+  bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  position: absolute;
+  width: calc(50% - 2.5rem);
+  z-index: 2;
+}
+
+.instancing-side-stats--left {
+  left: 1.25rem;
+}
+
+.instancing-side-stats--right {
+  left: calc(50% + 1.25rem);
+}
+
+.instancing-eyebrow {
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.instancing-side-label h2 {
+  color: #fff;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.instancing-side-label h2 code {
+  background: rgba(219, 234, 254, 0.16);
+  border-radius: 0.3rem;
+  color: #bfdbfe;
+  font-size: 0.85em;
+  padding: 0.1rem 0.3rem;
+}
+
+.instancing-counter {
+  align-items: center;
+  backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.75rem;
+  display: flex;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  width: max-content;
+}
+
+.instancing-counter-item {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.instancing-counter-item strong {
+  color: #fff;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.instancing-counter-item span {
+  color: #cbd5e1;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.instancing-counter-plus {
+  color: #94a3b8;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.instancing-side-stats--left .instancing-counter-item strong {
+  color: #fdba74;
+}
+
+.instancing-side-stats--right .instancing-counter-item strong {
+  color: #93c5fd;
+}
+
+.instancing-draw-count {
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.instancing-side-stats--left .instancing-draw-count {
+  color: #fdba74;
+}
+
+.instancing-side-stats--right .instancing-draw-count {
+  color: #93c5fd;
+  text-align: right;
+}
+
+.instancing-controls {
+  align-items: center;
+  color: #475569;
+  display: flex;
+  gap: 0.55rem;
+  margin: 0.65rem auto 0.1rem;
+  width: min(100%, 35rem);
+}
+
+.instancing-controls label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.instancing-controls input {
+  accent-color: #2563eb;
+  flex: 1;
+  min-width: 0;
+}
+
+.instancing-range-bound {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.instancing-controls output {
+  background: #dbeafe;
+  border-radius: 0.4rem;
+  color: #1d4ed8;
+  font-size: 0.85rem;
+  font-weight: 800;
+  min-width: 1.5rem;
+  padding: 0.25rem 0.4rem;
+  text-align: center;
+}
+
+</style>
+
+<!--
+- Ask: how many copies are there, and where is the bottleneck?
+- Use `Mesh` for one or a few objects, varied geometry/materials, or independently managed objects.
+- Use `InstancedMesh` for many copies that share geometry and material.
+- Instancing reduces CPU-side draw submissions; the GPU still renders every instance.
+- There is no universal threshold—profile first. This slider illustrates scaling, not performance.
+- The left side intentionally shows a naïve setup with one material per marker.
+- Regular Mesh objects can share geometry/material, but draw submissions still scale with Mesh count.
+- `setColorAt()` stores per-instance colors, so one material can render different colors.
+- Other per-instance differences need custom attributes/shaders or separate batches.
+-->
 
 ---
 
