@@ -665,6 +665,73 @@ The performance improvements were obvious right off the bat.
 TODO: ADD VIZUALIZATION
 
 ---
+class: profile-metrics-slide
+---
+
+# Three Versions, Observable Gains
+
+<div class="text-base text-slate-600">
+During dragging · interactive Chrome DevTools captures
+</div>
+
+| Metric | Original SVG | SVG refactor | Three.js rewrite |
+| --- | ---: | ---: | ---: |
+| Drawn frames / second | 10.9 | **35.9** | **74.2** |
+| Average main-thread map callback | 30.9 ms | **22.6 ms** | **4.9 ms** |
+| 95th-percentile map callback | 39.2 ms | **31.6 ms** | **8.8 ms** |
+| Main-thread busy time | 46.9% | 92.2% | **45.8%** |
+
+<div class="text-xl font-bold text-blue-800">
+Refactoring helped. The Three.js rewrite went further.
+</div>
+
+<div class="mt-3 text-base text-slate-700">
+Three.js also adds animated Earth, Moon, satellite, and 3D markers.
+</div>
+
+<div class="mt-3 text-sm text-slate-600">
+Observed case study, not a controlled benchmark; interactions differ.<br>
+Callback time is not complete GPU/display frame time.
+</div>
+
+<style>
+.slidev-layout.profile-metrics-slide {
+  background: #f8fafc;
+  justify-content: flex-start;
+  padding-top: 7rem;
+}
+
+.profile-metrics-slide table {
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  margin: 0.8rem 0 1rem;
+  width: 100%;
+}
+
+.profile-metrics-slide th,
+.profile-metrics-slide td {
+  padding: 0.5rem 0.65rem;
+}
+
+.profile-metrics-slide thead {
+  background: #e2e8f0;
+}
+</style>
+
+<!--
+- Source: performance-profiling/three-way-comparison.md, using svg-version.json.gz, svg-updated.json.gz, and three-js-version.json.gz. All slide numbers come from interactive DevTools captures, not the headless replay.
+- Original SVG: 34 DrawFrame events / 3.123 s across three drags; SVG refactor: 237 / 6.593 s across five drags; Three.js rewrite: 196 / 2.641 s across three drags.
+- Inclusive map callback durations use the SVG drag timer (35 calls), refactored renderFrame (239 calls), and SkyMap.draw (196 calls during drags). Percentiles use nearest rank; do not mix in idle animation callbacks.
+- Main-thread busy time is the union of CrRendererMain RunTask intervals clipped to the drag windows. More frequent updates explain why the SVG refactor improves throughput while occupying more of the main thread.
+- Original SVG waits 50 ms before drag updates and recreates ticks. The refactor preserves movement, reuses nodes, and narrows updates, without reducing geographic detail. Approximately 99.3% of sampled refactored render time still regenerates the background.
+- Three.js changes the background representation to a texture-backed shader and uses numeric geometry while keeping D3's projection math. It delivers higher observed frame throughput with the richer animated Space view: Earth, Moon, satellite, and 3D markers.
+- At 60 Hz the entire frame budget is 16.7 ms: the refactored SVG callback still averages 22.6 ms; the Three.js callback averages 4.9 ms. These callbacks are not complete GPU/display frame timings.
+- These are observed gains in this application, not universal renderer speedup factors. Viewport is 1920 × 999 / DPR 1; development code and extensions are present. Gestures and capture lengths differ (12.1 s original, 17.6 s refactor, 13.9 s rewrite).
+- We revisited SVG after the Three.js migration; the column order compares approaches, not the chronology of the experiments.
+- Higher throughput does not establish universally lower input-to-presentation latency, lower memory use, or lower total CPU usage. Preserve those distinctions when discussing the richer graphics.
+-->
+
+---
 
 # No Longer Shamed
 
@@ -2226,6 +2293,45 @@ class: buffer-geometry-slide
 - Groups or multiple materials add draw calls.
 - The GPU still processes the vertices; the win is less JS/DOM/parser work and fewer CPU draw submissions.
 - This is an optimization for many related vertices, not a reason to replace every small or independent SVG path.
+-->
+
+---
+class: chrome-profiling-placeholder-slide
+---
+
+# TODO: Profiling in Chrome DevTools
+
+**Placeholder: Performance panel → record → inspect → export**
+
+1. **Record:** repeat the same drag and selection with fixed data and settings.
+2. **Inspect:** select the interaction; examine Frames, Main, and Bottom-up.
+3. **Export:** save the profile with the workload, build, viewport, and throttling settings.
+
+<div class="my-5 rounded-xl border-2 border-dashed border-slate-400 bg-slate-50 p-5 text-center text-base text-slate-600">
+TODO: Add an annotated Performance capture and a short record/export walkthrough.
+</div>
+
+**Top issues to look for**
+
+- Frame gaps / timer waits and long main-thread tasks (> 50 ms).
+- Expensive JavaScript, repeated updates, and forced layout / paint work.
+- DOM churn, frequent garbage collection, and growing memory.
+
+<style>
+.slidev-layout.chrome-profiling-placeholder-slide {
+  justify-content: flex-start;
+  padding-top: 7rem;
+}
+</style>
+
+<!--
+- TODO: Build the walkthrough around the SVG drag hotspot, not a generic dashboard tour.
+- Show opening Chrome DevTools → Performance, starting/stopping a recording, selecting a drag interval, and exporting/importing the JSON trace. Verify the toolbar labels against the Chrome version used on stage.
+- Use Call tree / Bottom-up to distinguish expensive JS projection/path generation from style/layout/paint. Distinguish inclusive time from self time and don't add nested durations.
+- Explain that a 31 ms update can miss a 60 Hz frame budget (16.7 ms) without qualifying as a >50 ms long task. Scheduling delays can create jank even when the main thread is idle.
+- Look for unstable D3 joins, broad store-triggered redraws, DOM reads after writes, and allocation/GC churn; verify causes rather than treating every Paint or GC event as a bug.
+- Record without breakpoints. Keep data, viewport/DPR, motion, build mode, extensions, and CPU/network throttling consistent; separate profiler startup from application stalls.
+- Export the original and optimized traces with the exact reproduction steps. Raw profiles may embed screenshots, URLs, and application source: inspect before sharing.
 -->
 
 ---
