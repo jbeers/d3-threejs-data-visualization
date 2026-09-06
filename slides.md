@@ -1686,6 +1686,324 @@ Data or view changes → reproject → update instance matrices → request a fr
 -->
 
 ---
+class: handoff-slide d3-handoff-slide force-layout-slide
+---
+
+# D3 Can Compute the Layout, Too
+
+<div class="mb-4 text-base text-slate-600">Synthetic example—not part of the case study.</div>
+
+<div class="force-layout-grid">
+<div>
+
+<h2 class="font-bold text-blue-900">On each D3 simulation tick</h2>
+
+<<< @/slides.md#force-upload js
+
+<div class="mt-5 text-lg"><strong>D3’s simulation still runs on the CPU.</strong></div>
+<div class="mt-3 text-base text-slate-600">Colors stay with the nodes. Regroup changes which cluster each node moves toward.</div>
+<div class="mt-4 text-base font-semibold">320 nodes · one position buffer</div>
+
+</div>
+<div>
+  <div class="force-layout-stage" role="img" aria-label="320 synthetic nodes in four clusters. Regroup switches from category-based targets to an alternate grouping key; node colors do not change.">
+    <svg v-if="!ready" class="force-layout-fallback" viewBox="0 0 640 400" aria-hidden="true">
+      <circle v-for="(node, i) in previewNodes" :key="i" :cx="node.x" :cy="node.y" r="2.8" :fill="node.color" />
+    </svg>
+    <div ref="sceneHost" class="force-layout-canvas" aria-hidden="true"></div>
+  </div>
+  <div class="force-layout-controls">
+    <button type="button" :disabled="!ready" @click="regroup">Regroup</button>
+    <div class="force-layout-status" role="status" aria-live="polite">
+      <template v-if="error">{{ error }}</template>
+      <template v-else-if="ready">{{ mixed ? 'Alternate key' : 'Category' }} · {{ settled ? 'settled' : 'settling…' }}<span v-if="reducedMotion"> · reduced motion</span></template>
+      <template v-else>Static preview · 80 nodes per category</template>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="mt-4 text-base font-semibold text-blue-900">D3 updates positions → buffer changes → GPU draws nodes.</div>
+
+<script setup>
+import * as THREE from 'three'
+import { forceCollide, forceSimulation, forceX, forceY } from 'd3'
+import { nextTick, onBeforeUnmount, ref } from 'vue'
+import { onSlideEnter, onSlideLeave, useIsSlideActive, useNav, useSlideContext } from '@slidev/client'
+
+const sceneHost = ref(null)
+const ready = ref(false), settled = ref(false), mixed = ref(false), reducedMotion = ref(false)
+const error = ref('')
+const active = useIsSlideActive()
+const { isPrintMode } = useNav()
+const { $renderContext: renderContext } = useSlideContext()
+const count = 320
+const palette = ['#38bdf8', '#f472b6', '#fbbf24', '#34d399']
+const targets = [[-150, 85], [150, 85], [-150, -85], [150, -85]]
+// ponytail: static preview illustrates the clusters, not exact solver output; capture a live frame if pixel matching matters.
+const previewNodes = Array.from({ length: count }, (_, i) => {
+  const n = Math.floor(i / 4), angle = n * Math.PI * (3 - Math.sqrt(5)), radius = 4.4 * Math.sqrt(n)
+  const [x, y] = targets[i % 4]
+  return { x: 320 + x + Math.cos(angle) * radius, y: 200 - y + Math.sin(angle) * radius, color: palette[i % 4] }
+})
+let renderer, scene, camera, geometry, material, positions, simulation, resizeObserver, events, preference
+let nodes = [] // Plain objects: D3 ticks never mutate Vue's reactive state.
+
+function draw() {
+  if (!renderer) return
+  // #region force-upload
+  nodes.forEach((node, i) => {
+    positions.setXYZ(i, node.x, node.y, 0)
+  })
+  positions.needsUpdate = true
+  renderer.render(scene, camera)
+  // #endregion
+}
+
+function run() {
+  if (!simulation || document.hidden) return
+  simulation.stop()
+  if (reducedMotion.value) {
+    const ticks = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()))
+    simulation.tick(ticks) // Manual ticks don't dispatch D3's tick/end events.
+    draw()
+    settled.value = true
+  } else if (simulation.alpha() >= simulation.alphaMin()) {
+    settled.value = false
+    simulation.restart()
+  }
+}
+
+function retarget() {
+  const group = node => mixed.value ? Math.floor(node.id / 4) % 4 : node.id % 4
+  simulation.force('x', forceX(node => targets[group(node)][0]).strength(0.14))
+  simulation.force('y', forceY(node => targets[group(node)][1]).strength(0.14))
+  simulation.alpha(1)
+  run()
+}
+
+function regroup() {
+  if (!simulation) return
+  mixed.value = !mixed.value
+  retarget()
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value) return
+  const width = sceneHost.value.clientWidth, height = sceneHost.value.clientHeight
+  if (!width || !height) return
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+  renderer.setSize(width, height, false)
+  camera.left = -200 * width / height
+  camera.right = 200 * width / height
+  camera.updateProjectionMatrix()
+  draw()
+}
+
+function disposeScene() {
+  simulation?.stop()
+  simulation?.on('tick', null).on('end', null)
+  resizeObserver?.disconnect()
+  events?.abort()
+  geometry?.dispose()
+  material?.dispose()
+  renderer?.dispose()
+  renderer?.forceContextLoss()
+  renderer?.domElement.remove()
+  renderer = scene = camera = geometry = material = positions = simulation = resizeObserver = events = preference = undefined
+  nodes = []
+  ready.value = false
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+  error.value = ''
+  mixed.value = false
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setClearColor(0x0f172a)
+    sceneHost.value.appendChild(renderer.domElement)
+    scene = new THREE.Scene()
+    camera = new THREE.OrthographicCamera(-320, 320, 200, -200, 0.1, 100)
+    camera.position.z = 10
+    nodes = Array.from({ length: count }, (_, id) => ({ id }))
+    positions = new THREE.BufferAttribute(new Float32Array(count * 3), 3)
+    positions.setUsage(THREE.DynamicDrawUsage)
+    geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', positions)
+    const colors = new Float32Array(count * 3)
+    nodes.forEach((node, i) => new THREE.Color(palette[node.id % 4]).toArray(colors, i * 3))
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    material = new THREE.PointsMaterial({ size: 5, vertexColors: true, sizeAttenuation: false })
+    const points = new THREE.Points(geometry, material)
+    points.frustumCulled = false // Positions change without recomputing a bounding sphere.
+    scene.add(points)
+    simulation = forceSimulation(nodes).stop()
+      .alphaDecay(0.05)
+      .force('collide', forceCollide(5))
+      .on('tick', draw)
+      .on('end', () => { settled.value = true })
+    events = new AbortController()
+    preference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    reducedMotion.value = preference.matches
+    preference.addEventListener('change', event => {
+      reducedMotion.value = event.matches
+      run()
+    }, { signal: events.signal })
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) simulation?.stop()
+      else run()
+    }, { signal: events.signal })
+    renderer.domElement.addEventListener('webglcontextlost', event => {
+      event.preventDefault()
+      disposeScene()
+      error.value = 'WebGL unavailable · static illustration shown'
+    }, { signal: events.signal })
+    resizeObserver = new ResizeObserver(resize)
+    resizeObserver.observe(sceneHost.value)
+    ready.value = true
+    resize()
+    retarget()
+  } catch (cause) {
+    disposeScene()
+    error.value = 'WebGL unavailable · static illustration shown'
+    console.warn('Force demo could not initialize', cause)
+  }
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  if (active.value && !isPrintMode.value && ['slide', 'presenter'].includes(renderContext.value)) createScene()
+})
+onSlideLeave(disposeScene)
+onBeforeUnmount(disposeScene)
+</script>
+
+<!--
+- Planned 60–90-second delivery: (0–20s) establish the synthetic data and CPU/GPU boundary; (20–40s) let the four category clusters settle and point out the shared position buffer; (40–65s) press Regroup once and watch the same colored records follow a different grouping key; (65–80s) trace tick → numeric buffer → render, then state the limitation. Rehearsal must confirm the actual delivery time.
+- There are 320 synthetic records, four original categories of 80, and four targets. Regroup switches between id % 4 and floor(id / 4) % 4. Color stays tied to the original category; the alternate layout mixes colors rather than changing the underlying records.
+- forceX/forceY pull nodes toward targets; forceCollide separates them. Replacing the position forces refreshes D3's cached targets, and alpha(1).restart() reheats the existing simulation. We keep the same node objects, geometry, and position buffer across regrouping.
+- D3 owns the CPU simulation timer. Its tick callback writes a Three.js BufferAttribute; needsUpdate schedules an upload, and renderer.render submits the points. There is no second perpetual requestAnimationFrame loop and no Vue update for each node on each tick.
+- Use this pattern when a CPU layout algorithm produces positions for a renderer. WebGL does not move D3's force solver onto the GPU; a larger or more expensive simulation can still block the main thread. This scene illustrates architecture, not a performance threshold or benchmark.
+- The simulation cools and stops on its own. Leaving the slide stops it immediately and releases observers, listeners, geometry, material, and renderer. Hidden documents pause it. Reduced motion settles synchronously and renders once; Regroup still works without an animated transition.
+- Print, overview, and inactive previews show a clearly labeled static SVG illustration, not a live WebGL simulation. The same illustration is available if WebGL initialization fails or its context is lost.
+- There are deliberately no edges, dragging, or physics sliders. One planned interaction is enough to demonstrate the handoff.
+-->
+
+---
+class: handoff-slide d3-handoff-slide
+---
+
+# Vue Owns State, Not Every Frame
+
+<div class="mb-4 text-base text-slate-600">Adapted from the application’s CelestialMap.vue · renderer setup stays behind createSkyMap()</div>
+
+<div class="grid grid-cols-2 gap-5">
+<div>
+
+<h2 class="font-bold text-blue-900">Vue: mount → update → unmount</h2>
+
+```js
+const viewport = ref(null)
+let map
+
+onMounted(() => {
+  map = createSkyMap(viewport.value)
+  map.setData(store.results.loc)
+})
+watch(() => store.results.loc,
+  data => map?.setData(data))
+onBeforeUnmount(() => map?.destroy())
+```
+
+<div class="mt-3 text-base">Host element: <code>&lt;div ref="viewport"&gt;&lt;/div&gt;</code></div>
+
+</div>
+<div>
+
+<h2 class="font-bold text-blue-900">React: the same ownership boundary</h2>
+
+```js
+useEffect(() => {
+  const view = createSkyMap(host.current)
+  map.current = view
+  return () => view.destroy()
+}, [])
+useEffect(() => {
+  map.current?.setData(events)
+}, [events])
+```
+
+<div class="mt-3 text-base text-slate-600">DOM and renderer refs are created with <code>useRef(null)</code>. Data updates do not recreate the renderer.</div>
+
+</div>
+</div>
+
+<div class="mt-5 rounded-xl bg-blue-100 px-5 py-4 text-lg text-blue-900">Update buffers, <strong>not</strong> the component tree. Keep render objects outside reactive state.</div>
+
+<!--
+- Source: portal-to-the-universe @ 6fc819a, modules_app/core/resources/assets/js/components/CelestialMap.vue, especially startMap(), the results.loc watch, onMounted(), and onBeforeUnmount(). The visible adapter omits retry/popover/selection UI, region watches, and motion preferences so the ownership boundary stays readable.
+- createSkyMap is the real application API, not a newly invented abstraction. It appends one canvas and returns controls. The Vue component owns store subscriptions and DOM UI; the renderer owns Three.js objects and frame scheduling. The element ref must exist before initialization, so initialize after mount, not during setup/render.
+- The real search store replaces results.loc arrays. A shallow watch is sufficient for that contract; in-place record mutation would need an explicit update signal. setData() performs validation, matches event IDs, and reuses marker capacity where possible.
+- Keep the controls object, node positions, and typed buffers out of deep reactive state. UI state such as selection remains reactive; frame-by-frame position changes do not need to reconcile hundreds of components.
+- The React code is an illustrative equivalent, not part of the production Vue application. host and map are useRef(null) values, and the host is a div with ref={host}. Effects run in order: create the view, then send initial/current data. The cleanup closes over its own view, including React development Strict Mode's setup/cleanup/setup cycle.
+- Production startMap() catches WebGL initialization failures and retains the Results-based way to inspect data; it also supports retry. Those error and accessibility paths are omitted from the visible excerpt, not recommendations to remove them.
+- Slidev can keep inactive slide components mounted. The preceding demo therefore also uses onSlideLeave() for cleanup, with an active-slide guard after nextTick(); onBeforeUnmount alone would not cover slide navigation.
+-->
+
+---
+class: handoff-slide d3-handoff-slide
+---
+
+# Resize and Teardown Are Part of Rendering
+
+<div class="mb-4 text-base text-slate-600">The component calls destroy(). The renderer releases what it owns.</div>
+
+<div class="grid grid-cols-2 gap-5">
+<div>
+
+<h2 class="font-bold text-blue-900">Resize the drawing, not the component tree</h2>
+
+```js
+const resize = new ResizeObserver(() => {
+  const box = container.getBoundingClientRect()
+  width = box.width; height = box.height
+  if (!width || !height) return
+  renderer.setSize(width, height, false)
+  viewDirty = true
+  requestFrame()
+})
+resize.observe(container)
+```
+
+<div class="mt-3 text-base text-slate-600">Next frame: recompute the D3 projection and this map’s orthographic camera bounds.</div>
+
+</div>
+<div class="lifecycle-checklist">
+
+<h2 class="font-bold text-blue-900">Teardown checklist</h2>
+
+- **Stop work:** cancel animation frames and timers; stop D3 simulations.
+- **Detach:** disconnect observers; abort or remove event listeners.
+- **Release GPU resources:** dispose owned geometry, materials, textures, and renderer.
+- **Remove the canvas:** do not leave an orphaned drawing surface.
+
+</div>
+</div>
+
+<div class="mt-5 rounded-xl bg-blue-100 px-5 py-4 text-lg text-blue-900">Removing a DOM node does not stop a simulation or release all GPU resources.</div>
+
+<!--
+- Source: portal-to-the-universe @ 6fc819a, SkyMap.js resizeRenderer() and destroy(). The excerpt uses the renderer's existing width/height variables, not new shadowing locals. Production also caps devicePixelRatio at 2 and observes visibility; those details are outside the visible resize excerpt.
+- viewDirty causes draw() to rebuild the geographic projection, update camera.right and camera.bottom, call camera.updateProjectionMatrix(), and refresh affected geometry before rendering. A PerspectiveCamera would instead need an updated aspect ratio. Changing canvas dimensions alone is insufficient.
+- renderer.setSize(width, height, false) changes the drawing buffer without taking over CSS layout. A zero-size guard avoids invalid projections while the host is hidden. In the Slidev demo, clientWidth/clientHeight deliberately exclude Slidev's outer CSS scale.
+- Production destroy() marks the renderer destroyed, cancels its requestAnimationFrame and tooltip timeout, aborts signal-bound listeners, disconnects resize/intersection observers, disposes unique owned geometries/materials/textures and instance resources, then disposes the renderer and removes its canvas.
+- simulation.stop() belongs to the preceding synthetic force demo; the production sky map does not contain a force simulation. The demo has no perpetual extra animation loop: stopping D3's timer stops its recurring draws.
+- AbortController only removes listeners that were registered with its signal. Removing a canvas is not a substitute for stopping timers or disposing GPU resources. Dispose owned resources, not assets borrowed from another owner.
+- Cleanup must tolerate partial initialization and repeated calls. On slide re-entry or component remount, create one fresh renderer—not another canvas beside the old one. The force demo is checked for leave/re-entry, reduced motion, and WebGL failure.
+-->
+
+---
 class: instancing-slide
 ---
 
