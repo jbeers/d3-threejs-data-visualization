@@ -325,3 +325,25 @@
 .svg-demo-shape {
   stroke: #0f172a;
 }
+
+.slidev-layout.handoff-slide {
+  background: #f8fafc;
+  justify-content: flex-start;
+  padding-top: 7rem;
+}
+
+.d3-handoff-slide {
+  --slidev-code-font-size: 14px;
+  --slidev-code-line-height: 21px;
+}
+
+.d3-handoff-slide h2 {
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+}
+
+.d3-handoff-slide :not(pre) > code {
+  background: #e2e8f0;
+  color: #0f172a;
+}

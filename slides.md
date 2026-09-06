@@ -322,12 +322,25 @@ class: review-slide
 
 The visualization was...
 
-<div v-click class="review-reveal">
-  <div class="review-janky">JANKY!</div>
-  <div class="video-placeholder">VIDEO PLACEHOLDER</div>
+<div class="review-reveal">
+  <div v-click="1" class="review-janky">JANKY!</div>
+  <SlidevVideo
+    v-click="1"
+    src="/videos/before-demo.webm"
+    controls
+    muted
+    playsinline
+    preload="metadata"
+    timestamp="0.2"
+    autoreset="click"
+    class="review-video"
+    aria-label="Original SVG celestial map interaction recording"
+  >
+    <a href="/videos/before-demo.webm">Watch the original SVG demo.</a>
+  </SlidevVideo>
 </div>
 
-<div v-click class="review-final">What would my ancestors think?</div>
+<div v-click="2" class="review-final">What would my ancestors think?</div>
 
 <style>
 .review-slide {
@@ -355,16 +368,14 @@ The visualization was...
   text-align: center;
 }
 
-.video-placeholder {
-  align-items: center;
-  aspect-ratio: 16 / 9;
-  background: #e2e8f0;
-  border: 2px dashed #94a3b8;
+.review-video {
+  aspect-ratio: 1555 / 837;
+  background: #0f172a;
+  border: 1px solid #94a3b8;
   border-radius: 1rem;
-  color: #64748b;
-  display: flex;
-  font-size: 0.9rem;
-  justify-content: center;
+  display: block;
+  object-fit: contain;
+  width: 100%;
 }
 
 .review-final {
@@ -638,14 +649,46 @@ It is a JavaScript library that provides a convenient API for sending graphics d
 - Well documented!
 
 ---
+class: handoff-slide
+---
 
 # Will Three.js Work with D3?
 
-YES!
+<div class="mb-5 text-xl">Keep D3’s calculations. Replace the SVG drawing.</div>
 
-We still need D3. D3 covers the important parts of calculating positions, managing the visualization's data, and other mathy technical things.
+<div class="grid grid-cols-3 gap-4">
+  <section class="svg-demo-panel">
+    <h2>Application / Vue</h2>
+    <p>Records, selection, UI, and lifecycle.</p>
+    <div class="text-sm text-slate-600">Owns the application state.</div>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>D3</h2>
+    <p>Projections, scales, and layout calculations.</p>
+    <div class="text-sm text-slate-600">Produces numbers—not necessarily DOM.</div>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>Three.js</h2>
+    <p>Render objects, buffers, and drawing.</p>
+    <div class="text-sm text-slate-600">Turns those numbers into graphics.</div>
+  </section>
+</div>
 
-D3 is almost always paired with SVG for presentation but there is no concrete dependency. We are free to use Three.js!
+<div class="mt-6 rounded-xl bg-blue-100 px-5 py-4 text-center text-lg text-blue-900">
+Records → D3 calculations → numeric attributes → Three.js drawing
+</div>
+
+<div class="mt-5 text-lg">
+A WebGL renderer can draw a <strong>flat 2D map</strong>. 3D is an option, not a requirement.
+</div>
+
+<!--
+- Sources: portal-to-the-universe at 6fc819a, under modules_app/core/resources/assets/js/. CelestialMap.vue watches stores/searchStore.js results.loc and calls createSkyMap().setData(); skyProjection.mjs owns the geographic calculations; SkyMap.js owns render resources and drawing.
+- Projections, scales, and layouts are D3 capabilities, not a claim that this application uses all three. This case uses geoStereographic, geographic paths/circles, and a fixed classification palette—not a force layout or a continuous mark-size scale.
+- Graphic mode draws flat markers with an OrthographicCamera. Space mode uses the same projected event positions and adds representative 3D objects; it does not infer physical event distances from RA/Dec.
+- The useful boundary is numeric data, not a mandatory DOM selection. D3 can still produce SVG paths, Canvas paths, or numbers consumed by another renderer.
+- We will trace one event through the actual handoff after the SVG/Three.js rendering fundamentals.
+-->
 
 ---
 
@@ -653,16 +696,54 @@ D3 is almost always paired with SVG for presentation but there is no concrete de
 
 It worked like a charm.
 
-Three.js was a (nearly) drop-in replacement for the SVG based renderer.
+I kept the event records and D3’s sky-projection math, but rewrote the renderer API and Vue integration.
 
 The performance improvements were obvious right off the bat.
 
+<!--
+- This was a manageable renderer migration, not a literal drop-in API replacement.
+- Before (35a8bba^): D3Map.js createSVG(container, onInspect) returned update(), pointAt(), and tryToHighlight(). CelestialMap.vue subscribed broadly to the search store and called update() with data and region arguments.
+- After (6fc819a): SkyMap.js createSkyMap(container, callbacks) exposes setData(), setRegions(), focus(), destroy(), and other controls. CelestialMap.vue uses targeted watches, Vue-owned popovers, and explicit teardown.
+- Both versions consume records with event_id, ra, and dec and use D3's stereographic projection. SVG selections and string attributes became Three.js resources and numeric transforms; scheduling, interaction handling, and the background representation also changed.
+-->
+
+---
+class: case-study-demo-slide
 ---
 
-# TODO: Add demo of the new visualization
+# After: The Three.js Rewrite
 
+<SlidevVideo
+  src="/videos/after-demo.webm"
+  controls
+  muted
+  playsinline
+  preload="metadata"
+  timestamp="0.2"
+  autoreset="slide"
+  class="max-w-full max-h-88 self-center rounded-xl object-contain bg-slate-950"
+  aria-label="Three.js celestial map: smoother interaction with animated Earth, Moon, satellite, and event markers"
+>
+  <a href="/videos/after-demo.webm">Watch the Three.js demo.</a>
+</SlidevVideo>
 
-TODO: ADD VIZUALIZATION
+<div class="mt-3 text-center text-base text-slate-600">
+Recorded Space view · smoother interaction and richer graphics
+</div>
+
+<style>
+.slidev-layout.case-study-demo-slide {
+  justify-content: flex-start;
+  padding-top: 7rem;
+}
+</style>
+
+<!--
+- Before: public/videos/before-demo.webm on slide 10. After: public/videos/after-demo.webm here. Both are silent recordings of approximately 15 seconds.
+- Play using the native controls. SlidevVideo pauses and resets on leaving; the before video also pauses and resets when its reveal is hidden. Neither autoplays.
+- The before clip is cropped to the map; the after clip includes the application UI. Preserve their full frames rather than cropping away context or stretching them to match.
+- These recordings illustrate behavior; the next slide's measurements come from the separate Chrome Performance captures, not the videos' encoded frame rate.
+-->
 
 ---
 class: profile-metrics-slide
@@ -1541,6 +1622,68 @@ onSlideEnter(async () => {
 })
 onSlideLeave(disposeScene)
 </script>
+
+---
+class: handoff-slide d3-handoff-slide
+---
+
+# One Event, from D3 to Three.js
+
+<div class="mb-1 text-base text-slate-600">
+Adapted from the application · illustrative record · fixed 900 × 600 Graphic view
+</div>
+<div class="mb-2 text-base">
+<code>event = { event_id: 'demo', ra: 236.54, dec: -4.217 }</code> · angles in degrees
+</div>
+
+<div class="grid grid-cols-2 gap-5">
+<div class="min-w-0">
+
+<h2 class="font-bold text-blue-900">D3 → clipped screen coordinates</h2>
+
+<<< @/snippets/d3-handoff.mjs#projection js
+
+<<< @/snippets/d3-handoff.mjs#project js
+
+<div class="mt-2 text-base"><code>point ≈ [455.23, 314.36]</code></div>
+
+</div>
+<div class="min-w-0">
+
+<h2 class="font-bold text-blue-900">Three.js → an existing marker instance</h2>
+
+<<< @/snippets/d3-handoff.mjs#place js
+
+```js
+renderer.render(scene, camera)
+```
+
+<div class="mt-2 text-base"><code>position ≈ (455.23, -314.36, 0)</code></div>
+<div class="mt-3 text-base text-slate-600">
+Flip Y for this camera. Zero scale hides clipped points.
+</div>
+
+</div>
+</div>
+
+<div class="mt-3 text-base font-semibold text-blue-900">
+Data or view changes → reproject → update instance matrices → request a frame.
+</div>
+
+<!--
+- Adapted from portal-to-the-universe @ 6fc819a: modules_app/core/resources/assets/js/components/skyProjection.mjs createProjection() (line 37) and visiblePoint() (line 60); SkyMap.js projectMarkers() (line 202), updateMarkers() (line 263), and setData() (line 367).
+- The event is an illustrative fixture using the production field shape, not an asserted catalog record. Production coordinates() validates catalog values first; this example starts with valid numeric RA/Dec in degrees. Do not silently treat missing coordinates as zero.
+- At width 900 and zoom 1, the production scale formula gives (900 - 120) * (1 - 0.5) = 390. The rotation is an illustrative view setting. The numbers shown here are checked by node snippets/d3-handoff.mjs.
+- Direct projection([ra, dec]) bypasses clipping. The stream calls point(x, y) only when the point passes angular and viewport clipping; the null case is intentional.
+- The mesh is an existing InstancedMesh of 10 × 10 planes; dummy is a reused Object3D rotated 45 degrees for Graphic mode. Camera, scene, mesh/material allocation, selection styling, and lifecycle setup are omitted from the visible handoff. The instancing demonstration explains why instances are useful.
+- The real OrthographicCamera uses left=0, right=width, top=0, bottom=-height. Hence [x, y] screen pixels become [x, -y, 0] in local scene coordinates. Zero Z keeps the marks flat; the production sky layer has a separate depth offset.
+- A drag/zoom/resize marks the view dirty and reprojects existing markers. setData() matches event_id, retains marker state, and grows instance capacity only when needed. Stable IDs do not imply permanently stable instance indices.
+- instanceMatrix.needsUpdate schedules upload of changed numeric transforms; it is not the draw itself. Production updates the batch, then renderer.render(scene, camera) runs inside its coalesced requestAnimationFrame callback, not once per event.
+- Reuse here specifically means marker resources. The current implementation still replaces projected line/region geometries on relevant view changes; do not claim that every buffer is reused.
+- No invented magnitude-to-size scale: Graphic marks have a fixed size; Space classification colors use a fixed palette. A quantitative scale belongs in the example only if the data has a meaningful quantitative encoding.
+- For geographic lines/regions, projectPath() also keeps D3: geoPath(projection, customContext) emits numeric segments and Three.js ShapePath operations rather than SVG d strings.
+- The runnable check verifies clipping, coordinate conversion, orthographic mapping, and instance reuse without a browser; it is not a rendering benchmark or a full application reproduction.
+-->
 
 ---
 class: instancing-slide
