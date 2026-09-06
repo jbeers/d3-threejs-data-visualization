@@ -283,34 +283,66 @@ class: family-slide
 # A Family Connection to NASA
 
 <div class="family-columns">
-  <div class="family-placeholder"></div>
+  <figure class="family-photo">
+    <img src="/images/pa-and-uncle-greg.jpg" alt="Pa and Uncle Greg together in a family photograph" />
+    <figcaption>Pa and Uncle Greg</figcaption>
+  </figure>
   <div class="family-copy">
-    This was especially meaningful to me as my grandpa worked on the moon mission, and my uncle created 3D mission animations at NASA. It was therefore imperative that I do my best.
+    <p>This was especially meaningful to me.</p>
+    <p>My grandpa worked on the <strong>moon mission</strong>, and my uncle created <strong>3D mission animations at NASA</strong>.</p>
+    <p>It was therefore imperative that I do my best.</p>
   </div>
-  <div class="family-placeholder"></div>
 </div>
 
 <style>
+.slidev-layout.family-slide {
+  background: #f8fafc;
+  justify-content: flex-start;
+  padding-top: 7rem;
+}
+
 .family-columns {
   align-items: center;
   display: grid;
-  gap: 2rem;
-  grid-template-columns: 1fr 1fr 1fr;
-  height: 24rem;
-  margin-top: 3rem;
+  gap: 3rem;
+  grid-template-columns: 16.5rem minmax(0, 1fr);
 }
 
-.family-placeholder {
-  background: #f8fafc;
-  border: 2px dashed #cbd5e1;
-  border-radius: 1rem;
-  height: 100%;
+.family-photo {
+  margin: 0;
+}
+
+.family-photo img {
+  border-radius: 0.75rem;
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.family-photo figcaption {
+  color: #475569;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  text-align: center;
 }
 
 .family-copy {
-  font-size: 1.15rem;
-  line-height: 1.6;
-  text-align: center;
+  color: #334155;
+  font-size: 1.4rem;
+  line-height: 1.5;
+}
+
+.family-copy p {
+  line-height: inherit;
+  margin: 0 0 1.25rem;
+}
+
+.family-copy p:last-child {
+  border-left: 3px solid #2563eb;
+  color: #1e40af;
+  font-weight: 600;
+  margin-bottom: 0;
+  padding-left: 1rem;
 }
 </style>
 
@@ -2757,56 +2789,138 @@ class: buffer-geometry-slide
 -->
 
 ---
-class: chrome-profiling-placeholder-slide
+class: handoff-slide practical-guidance-slide
 ---
 
-# TODO: Profiling in Chrome DevTools
+# Profiling in Chrome DevTools
 
-**Placeholder: Performance panel → record → inspect → export**
+<figure class="m-0">
+  <img
+    class="profile-toolbar"
+    src="/images/devtools-performance-toolbar.png"
+    alt="Chromium DevTools toolbar: 1 marks the Performance tab, 2 the Record button, and 3 the Save profile down-arrow."
+  />
+</figure>
 
-1. **Record:** repeat the same drag and selection with fixed data and settings.
-2. **Inspect:** select the interaction; examine Frames, Main, and Bottom-up.
-3. **Export:** save the profile with the workload, build, viewport, and throttling settings.
-
-<div class="my-5 rounded-xl border-2 border-dashed border-slate-400 bg-slate-50 p-5 text-center text-base text-slate-600">
-TODO: Add an annotated Performance capture and a short record/export walkthrough.
+<div class="grid grid-cols-3 gap-3 mt-3">
+  <section class="svg-demo-panel">
+    <h2>1 · Open Performance</h2>
+    <p>Open DevTools → Performance.<br>Fix the data, view, and settings before recording.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>2 · Record → inspect</h2>
+    <p>Record → drag + select → stop.<br>Select the drag; inspect Frames, Main, then Bottom-up.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>3 · Save profile ↓</h2>
+    <p>Export the JSON trace.<br>Note the build, viewport/DPR, throttling, and exact steps.</p>
+  </section>
 </div>
 
-**Top issues to look for**
-
-- Frame gaps / timer waits and long main-thread tasks (> 50 ms).
-- Expensive JavaScript, repeated updates, and forced layout / paint work.
-- DOM churn, frequent garbage collection, and growing memory.
-
-<style>
-.slidev-layout.chrome-profiling-placeholder-slide {
-  justify-content: flex-start;
-  padding-top: 7rem;
-}
-</style>
+<figure class="profile-hotspot">
+  <figcaption>SVG refactor · measured hotspot · call-path sketch, not a flame chart</figcaption>
+  <div class="profile-call-path">
+    <code>renderFrame</code> → <code>render</code> → <mark><code>updateBackgroundElements</code></mark>
+  </div>
+  <p><strong>≈99.3% of sampled render time:</strong> background projection, clipping, and path generation.</p>
+  <p><strong>22.6 ms</strong> average drag callback &gt; <strong>16.7 ms</strong> total frame budget at 60 Hz.</p>
+</figure>
 
 <!--
-- TODO: Build the walkthrough around the SVG drag hotspot, not a generic dashboard tour.
-- Show opening Chrome DevTools → Performance, starting/stopping a recording, selecting a drag interval, and exporting/importing the JSON trace. Verify the toolbar labels against the Chrome version used on stage.
-- Use Call tree / Bottom-up to distinguish expensive JS projection/path generation from style/layout/paint. Distinguish inclusive time from self time and don't add nested durations.
-- Explain that a 31 ms update can miss a 60 Hz frame budget (16.7 ms) without qualifying as a >50 ms long task. Scheduling delays can create jank even when the main thread is idle.
-- Look for unstable D3 joins, broad store-triggered redraws, DOM reads after writes, and allocation/GC churn; verify causes rather than treating every Paint or GC event as a bug.
-- Record without breakpoints. Keep data, viewport/DPR, motion, build mode, extensions, and CPU/network throttling consistent; separate profiler startup from application stalls.
-- Export the original and optimized traces with the exact reproduction steps. Raw profiles may embed screenshots, URLs, and application source: inspect before sharing.
+- Use the supplied numbered toolbar screenshot to point out Performance (1), Record (2), and Save profile (3). The image is cropped to the toolbar; its original LCP/CLS/INP cards are not evidence for drag performance. The supplied screenshot is from Brave's Chromium DevTools; Chrome uses the same panel, but toolbar placement/labels can vary by version.
+- Open DevTools through the browser menu or Ctrl+Shift+I on Windows/Linux, Command+Option+I on macOS. Select Performance, start recording, repeat a short map drag and a selection, and stop. Do not substitute a page-reload recording for the interaction we are investigating.
+- After stopping, select a drag range in the overview. For a saved example, load svg-updated.json.gz and select approximately 1.567–2.795 s from the recording start. Examine Frames for gaps/long frames and Main for the work around the drag. Select the corresponding main-thread range for Bottom-up; sort by Total time to find expensive functions including their descendants. Self time excludes those descendants. Call tree shows the caller chain. Do not add nested durations.
+- Follow renderFrame → render → updateBackgroundElements. This is a labeled call-path illustration backed by the captured source and sample analysis, not a fabricated DevTools screenshot or a time-scaled flame chart. Source: performance-profiling/three-way-comparison.md, interactive SVG-refactor capture. Background generation accounts for approximately 5,089 / 5,124 ms of sampled inclusive render time across that capture, not just the first drag. The 22.6 ms mean callback is across all five drag windows (239 callbacks), not a single selected call or complete GPU/display frame time.
+- Distinguish JavaScript projection/path generation from style, layout, and paint. Here the remaining hotspot is background generation, not the number of event markers. The earlier SVG refactor already corrected tick-node churn, dropped drag deltas, and broad redraw triggers while retaining geographic detail.
+- A callback below the >50 ms long-task threshold can still exceed the entire 16.7 ms budget at 60 Hz. Timer waits and scheduling gaps can also produce jank while the main thread is idle. Check forced layout and allocation/GC churn as hypotheses, not proof that every Paint or GC event is a bug.
+- Save profile (down-arrow) exports the trace; Load profile (up-arrow), or dragging the exported file into Performance, reopens it. Save a short companion note with the exact gesture/selection sequence, data and starting view, build/revision, viewport/DPR, motion, extensions, and CPU/network throttling. Record without breakpoints and keep these conditions fixed for a repeatable comparison. Separate profiler startup from application stalls.
+- Inspect exported profiles before sharing: they can embed screenshots, URLs, and application source. Raw captures remain local; the deck packages only this cropped toolbar image and the existing reports. These historical recordings are a case study, not a controlled benchmark.
+- Reference: https://developer.chrome.com/docs/devtools/performance/reference
 -->
 
+---
+class: handoff-slide practical-guidance-slide
 ---
 
 # Performance Checklist
 
-Use a repeatable checklist to find and prioritize rendering improvements.
+<div class="grid grid-cols-2 gap-3">
+  <section class="svg-demo-panel">
+    <h2>1 · Identify the bottleneck</h2>
+    <p>Measure the actual interaction. Separate JavaScript, layout/paint, and GPU work.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>2 · Batch repeated marks</h2>
+    <p>Use instances or shared geometry where materials and drawing passes permit.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>3 · Reuse buffers</h2>
+    <p>Update existing attributes; upload only what changed. Avoid rebuilding every frame.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>4 · Draw only useful detail</h2>
+    <p>Check geometry detail, pixel ratio, and transparent overdraw. Preserve the visual task.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>5 · Stop unnecessary work</h2>
+    <p>Render on change when possible. Stop settled simulations and hidden/unmounted work.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>6 · Recheck responsiveness</h2>
+    <p>Repeat the same task. Check frame pacing, input-to-display delay, and memory over time.</p>
+  </section>
+</div>
+
+<div class="guidance-takeaway">Change one thing → repeat the workload → compare the result.</div>
+
+<!--
+- Start with the user's task, not a preferred renderer or a universal node-count threshold. The case study shows both an SVG optimization win and a further implementation-level gain from the rewrite; it is not an isolated SVG-versus-WebGL benchmark.
+- Use the main-thread trace to distinguish expensive JS from browser style/layout/paint. A short JS callback does not establish low GPU cost. For pixel-bound scenes, vary resolution, transparency, and pass count while observing frame pacing; change one variable at a time. Main-thread Paint duration is not a complete GPU measurement.
+- InstancedMesh helps repeated geometry/material combinations; merged geometry can help compatible marks. BufferGeometry alone does not batch separate objects. Material groups, shadows, and extra rendering/picking passes can add draw calls. Draw-call count alone is not a performance result.
+- Reuse attribute and instance-matrix buffers when capacity permits. Mark changed attributes for upload; use update ranges where appropriate instead of uploading large unchanged arrays. Stable D3 joins and targeted application watches are the analogous reduction of unnecessary work in the SVG version.
+- Reduce detail only where it preserves what the audience needs to see: LOD, appropriate device pixel ratio, and less overlapping transparency can help different bottlenecks. Do not silently discard meaningful data. Our in-place SVG refactor retained full geographic detail; representation changes were a separate step.
+- requestAnimationFrame schedules work; it does not make an expensive callback cheap. Coalesce dirty updates, stop a force simulation when it cools, and suspend work when the view is inactive. Continuous animation still needs frames while active. Teardown must release owned GPU resources as shown earlier.
+- Repeat drag, selection, and keyboard tasks with fixed data/settings. Compare frame pacing and input-to-presentation behavior separately; callback duration is neither. Use repeated runs and inspect tails rather than only averages. Look for retained-memory growth over repeated create/destroy cycles; one heap peak or compressed trace size does not prove a leak or a saving, and JS heap excludes GPU memory.
+- Keep the before/after images and interaction behavior as checks: faster but incorrect, less informative, or inaccessible is not the same improvement.
+-->
 
 ---
+class: handoff-slide practical-guidance-slide
+---
 
-# Keyboard Accessibility
+# Accessibility Beyond the Canvas
 
-Keep the visualization accessible through keyboard navigation.
+<div class="grid grid-cols-2 gap-4">
+  <section class="svg-demo-panel">
+    <h2>Expose the data</h2>
+    <p>Offer an equivalent table or list with labels, units, and a summary. Do not rely on color alone.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>Support the keyboard</h2>
+    <p>Use labeled native controls. Make pan, zoom, selection, and dismissal reachable without a pointer.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>Describe the selection</h2>
+    <p>Share the selected record ID. Show a visual highlight and meaningful text; announce deliberate selection changes.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>Keep focus and motion usable</h2>
+    <p>Show visible focus; never trap it. Honor reduced motion and offer pause for nonessential animation.</p>
+  </section>
+</div>
 
+<div class="guidance-takeaway">Pointer / keyboard / data list → selected ID → highlight + text details</div>
+
+<!--
+- WebGL pixels do not expose individual records as semantic DOM elements. A label on the canvas can describe its purpose, but does not make all plotted data or interactions accessible. Keep semantic controls, summaries, and record details in HTML, owned by the application.
+- Offer an equivalent route to the same filtered data and actions: a table or list with meaningful names, units, sorting/filtering, and selection. Paginate or otherwise manage large lists; do not add tens of thousands of tab stops or invisible DOM nodes just to mirror every GPU mark. A CSV download can supplement this, not replace an operable in-app alternative.
+- Use native buttons, inputs, and selects where possible. Make keyboard operation discoverable, preserve a logical focus order and visible focus indicator, and provide an escape from any custom interaction. Offer alternatives to pointer-only pan/zoom/dragging and hover-only information. Support zoom and sufficient contrast; pair color encodings with text, shape, or another distinguishable cue.
+- Pointer picking, keyboard selection, and the equivalent data view should all update the same selected record ID. Resolve it to a record and update both its visual highlight and an HTML description. An appropriately scoped role="status" or polite live region can announce committed selection changes; do not announce animation frames or every hover pixel. Keep focus predictable when data changes or a detail panel closes.
+- The later GPU-picking demo illustrates the ID → record boundary and keyboard scan/lock controls. It is not a claim of complete accessibility: an equivalent data view and assistive-technology testing are still application responsibilities. Avoid announcing bare RGB values when a record name/value communicates the user's selection.
+- Honor prefers-reduced-motion on entry and when the preference changes. Prefer instant updates or reduced transitions while preserving the selected state and useful controls. Offer pause for nonessential continuous motion; do not rely solely on an OS preference. The earlier synthetic force demo settles immediately under reduced motion rather than removing the data.
+- These are implementation guidelines, not an accessibility certification of this deck or the case-study application. Test with a keyboard and screen reader, at zoom, and with reduced motion; actual presentation-device rehearsal and the full demo audit remain separate checklist work.
+- References: https://www.w3.org/WAI/tutorials/images/complex/ and https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
+-->
 
 ---
 

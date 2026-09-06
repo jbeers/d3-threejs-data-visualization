@@ -419,3 +419,74 @@
 .lifecycle-checklist li + li {
   margin-top: 0.8rem;
 }
+
+.practical-guidance-slide .svg-demo-panel h2 {
+  color: #1e40af;
+  font-size: 1.05rem;
+  letter-spacing: normal;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.practical-guidance-slide p {
+  color: #334155;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.profile-toolbar {
+  border: 1px solid #334155;
+  border-radius: 0.6rem;
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
+.profile-hotspot {
+  background: #fffbeb;
+  border-left: 0.3rem solid #b45309;
+  border-radius: 0.5rem;
+  margin: 0.8rem 0 0;
+  padding: 0.65rem 1rem;
+}
+
+.profile-hotspot figcaption {
+  color: #78350f;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.profile-call-path {
+  color: #334155;
+  line-height: 1.65;
+  margin: 0.3rem 0;
+}
+
+.practical-guidance-slide .profile-call-path code {
+  background: none;
+  color: inherit;
+  font-size: 0.95rem;
+}
+
+.profile-call-path mark {
+  background: #fde68a;
+  border-radius: 0.25rem;
+  color: #78350f;
+  padding: 0.15rem 0.25rem;
+}
+
+.practical-guidance-slide .profile-hotspot p {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.guidance-takeaway {
+  background: #dbeafe;
+  border-radius: 0.75rem;
+  color: #1e40af;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+}
