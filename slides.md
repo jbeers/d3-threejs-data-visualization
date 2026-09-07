@@ -1,10 +1,14 @@
 ---
 title: Data Visualization with D3 and Three.js
+colorSchema: light
+class: talk-title
 ---
 
-# Breaking the DOM Limit: High-Performance Data Visualization with D3 and Three.js
+# Breaking the DOM Limit
 
-By Jacob Beers
+<div class="talk-subtitle">High-performance data visualization<br>with D3 and Three.js</div>
+<div class="talk-thesis">Keep the D3 you know. Give it another way to draw.</div>
+<div class="talk-author">Jacob Beers</div>
 
 ---
 
@@ -14,7 +18,7 @@ By Jacob Beers
 
 <div>
 
-What if the Rebels had given Luke Skywalker a markdown table of data instead of a cutting edge 3D visualization?
+What if the Rebels had given Luke Skywalker a Markdown table instead of a clear 3D view?
 
 </div>
 
@@ -38,7 +42,7 @@ The rebellion is doomed.
 
 | Target       | Team | Pilot    |    Distance | Size   | Notes                                       |
 | ------------ | ---- | -------- | ----------: | ------ | ------------------------------------------- |
-| Exhaust Port | Red  | Luke     |       0.5 m | 2 m    | Primary target, about the size of a womprat |
+| Exhaust Port | Red  | Luke     |       0.5 m | 2 m    | Primary target, about the size of a womp rat |
 | TIE Fighters | Red  | Biggs    |    Variable | Small  | Keep off Luke                               |
 | Turbolasers  | Gold | Dutch    |        2 km | Large  | Shoot back                                  |
 | Trench Walls | All  | Everyone |         0 m | Huge   | NOT A TARGET                                |
@@ -68,7 +72,7 @@ The rebellion is doomed.
   font-size: 1rem;
   overflow: hidden;
   width: 100%;
-  color: #ab8181;
+  color: #e2e8f0;
 }
 
 .target-briefing thead {
@@ -93,7 +97,7 @@ The rebellion is doomed.
 }
 
 .target-briefing tbody tr:first-child {
-  color: #fca5a5;
+  color: #fde68a;
   font-weight: 700;
 }
 </style>
@@ -106,13 +110,13 @@ The rebellion is doomed.
 
 <div>
 
-I hope you can agree. A good data visualization could be considered a matter of life and death.
+Sometimes, a clear picture makes all the difference.
 
 </div>
 
 <div>
 
-<img src="/videos/starwars-porkins.gif" class="rounded-xl shadow-lg" />
+<img src="/videos/starwars-porkins.gif" class="rounded-xl shadow-lg" alt="Porkins in his X-wing cockpit" />
 
 </div>
 
@@ -126,13 +130,13 @@ class: space-viz
 
 Since I know the importance of a good visualization you can imagine my excitement when I was selected to work on building a data visualization for a space project!
 
-My employer, Ortus Solutions was contracted to help USRA build a proof of concept project called Multi-messenger.
+My employer, Ortus Solutions, was contracted to help USRA build a proof-of-concept project called Multi-Messenger.
 
 <div class="flex items-center justify-center gap-10 mt-10">
-  <img src="/images/ortus-logo.png" class="h-24 object-contain" />
+  <img src="/images/ortus-logo.png" class="h-24 object-contain" alt="Ortus Solutions" />
   <div class="text-6xl">🤝</div>
   <div class="bg-[#0a1931] rounded-xl p-4 inline-block">
-    <img src="/images/usra-logo.svg" class="h-24 object-contain" />
+    <img src="/images/usra-logo.svg" class="h-24 object-contain" alt="USRA" />
   </div>
 </div>
 
@@ -151,49 +155,49 @@ class: team-slide
 <div class="grid grid-cols-4 gap-6 mt-8 px-4">
 
 <div class="team-card">
-<img src="/images/usra-logo.svg" class="team-logo bg-[#0a1931] rounded px-2 py-1" />
+<img src="/images/usra-logo.svg" class="team-logo bg-[#0a1931] rounded px-2 py-1" alt="USRA" />
 <div class="team-name">Bill Cleveland</div>
 <div class="team-role">USRA</div>
 </div>
 
 <div class="team-card">
-<img src="/images/usra-logo.svg" class="team-logo bg-[#0a1931] rounded px-2 py-1" />
+<img src="/images/usra-logo.svg" class="team-logo bg-[#0a1931] rounded px-2 py-1" alt="USRA" />
 <div class="team-name">Adam Goldstein</div>
 <div class="team-role">USRA</div>
 </div>
 
 <div class="team-card">
-<img src="/images/usra-logo.svg" class="team-logo bg-[#0a1931] rounded px-2 py-1" />
+<img src="/images/usra-logo.svg" class="team-logo bg-[#0a1931] rounded px-2 py-1" alt="USRA" />
 <div class="team-name">Michael O'Dell</div>
 <div class="team-role">USRA</div>
 </div>
 
 <div class="team-card">
-<img src="/images/ortus-logo.png" class="team-logo" />
+<img src="/images/ortus-logo.png" class="team-logo" alt="Ortus Solutions" />
 <div class="team-name">Jorge Reyes</div>
 <div class="team-role">Project Manager</div>
 </div>
 
 <div class="team-card">
-<img src="/images/ortus-logo.png" class="team-logo" />
+<img src="/images/ortus-logo.png" class="team-logo" alt="Ortus Solutions" />
 <div class="team-name">Esme Acevedo</div>
 <div class="team-role">Developer</div>
 </div>
 
 <div class="team-card">
-<img src="/images/ortus-logo.png" class="team-logo" />
+<img src="/images/ortus-logo.png" class="team-logo" alt="Ortus Solutions" />
 <div class="team-name">Tom Buettell</div>
 <div class="team-role">QA Tester</div>
 </div>
 
 <div class="team-card">
-<img src="/images/ortus-logo.png" class="team-logo" />
+<img src="/images/ortus-logo.png" class="team-logo" alt="Ortus Solutions" />
 <div class="team-name">Lourdes Munoz</div>
 <div class="team-role">Project Manager</div>
 </div>
 
 <div class="team-card">
-<img src="/images/ortus-logo.png" class="team-logo" />
+<img src="/images/ortus-logo.png" class="team-logo" alt="Ortus Solutions" />
 <div class="team-name">Jacob Beers</div>
 <div class="team-role">Developer</div>
 </div>
@@ -228,37 +232,31 @@ class: team-slide
 
 .team-slide .team-role {
   color: #64748b;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
 }
 </style>
 
 ---
 
-# We Built Multi-Messenger: Portal to the Universe
+# Multi-Messenger: Portal to the Universe
 
-<div class="grid grid-cols-3 gap-6 items-center">
-
-<div>
-
-It aggregates scientific data from many observatories, using D3 for math and SVG for rendering.
-
-> The Portal to the Universe is a demonstration that covers approximately one year of data from April 1, 2019 through March 27, 2020 for the Fermi Gamma-ray Burst Monitor, the LIGO and Virgo Gravitational-wave observatories, and the Zwicky Transient Facility.
-
+<div class="project-overview">
+  <p>Events from several observatories, together on one sky map.<br>D3 did the calculations; SVG drew the map.</p>
+  <figure>
+    <img src="/images/multi-messenger-map.png" class="project-screenshot" alt="Observatory events plotted on the Multi-Messenger sky map" />
+  </figure>
 </div>
 
-<div class="col-span-2">
-
-<img src="/images/multi-messenger-screenshot.png" class="shadow-lg" />
-
-</div>
-
-</div>
+<!--
+- The supplied screenshot is cropped to the map: 1556 × 844 at (350, 148) in multi-messenger-screenshot.png. No plotted content is removed; the original is retained. This is not a performance measurement.
+- Original project description: “The Portal to the Universe is a demonstration that covers approximately one year of data from April 1, 2019 through March 27, 2020 for the Fermi Gamma-ray Burst Monitor, the LIGO and Virgo Gravitational-wave observatories, and the Zwicky Transient Facility.”
+-->
 
 ---
 
 # NASA Grant Winner
 
-<img src="/images/nasa-grant-triangle-v2.svg" class="grant-diagram" />
+<img src="/images/nasa-grant-triangle-v2.svg" class="grant-diagram" alt="Diagram connecting NASA, USRA, and Ortus Solutions" />
 
 <div class="grant-caption">Multi-Messenger won a grant from NASA!</div>
 
@@ -290,13 +288,13 @@ class: family-slide
   <div class="family-copy">
     <p>This was especially meaningful to me.</p>
     <p>My grandpa worked on the <strong>moon mission</strong>, and my uncle created <strong>3D mission animations at NASA</strong>.</p>
-    <p>It was therefore imperative that I do my best.</p>
+    <p>I wanted to get this right.</p>
   </div>
 </div>
 
 <style>
 .slidev-layout.family-slide {
-  background: #f8fafc;
+  background: var(--talk-paper);
   justify-content: flex-start;
   padding-top: 7rem;
 }
@@ -350,7 +348,7 @@ class: family-slide
 class: review-slide
 ---
 
-# Reviewing the Application I Noticed Something Awful
+# Before: The SVG Map
 
 The visualization was...
 
@@ -420,13 +418,13 @@ The visualization was...
 
 ---
 
-# This Could Not Be My Contribution
+# What Needed to Improve
 
-The visualization had several problems
+I wanted people to explore the data without fighting the map.
 
-- Stutter
-- Janky motion
-- Controls can get locked
+- Smoother dragging
+- More consistent updates
+- Controls that stay responsive
 
 ---
 
@@ -443,18 +441,20 @@ clicks: 3
 
 # Enter Three.js
 
+<div class="three-scene-kind">Illustration · not a benchmark</div>
+
 <div class="three-scene-stage">
   <div
     class="three-scene-copy"
     :class="{ 'three-scene-copy--compact': $clicks >= 1 }"
   >
-    Three.js provides an explicitly GPU-oriented rendering approach.
+    Three.js lets us keep D3’s math and change how we draw.
   </div>
   <div
     ref="sceneHost"
     class="three-scene-canvas"
     role="img"
-    aria-label="Cubes labeled Performant, D3 Compatible, and Agents love it"
+    aria-label="Illustrative cubes labeled GPU drawing, D3 math, and 2D or 3D"
   ></div>
 </div>
 
@@ -476,9 +476,10 @@ let resizeObserver
 let geometry
 let material
 let labelMaterial
+let reduceMotion = false
 const labelGeometries = []
 const cubeStates = []
-const labelText = ['Performant', 'D3 Compatible', 'Agents love it']
+const labelText = ['GPU drawing', 'D3 math', '2D or 3D']
 
 function resize() {
   if (!renderer || !camera || !sceneHost.value) return
@@ -510,10 +511,12 @@ function animate() {
   animationFrame = requestAnimationFrame(animate)
   cubeStates.forEach(({ group, cube }) => {
     const { targetX, targetScale } = group.userData
-    group.position.x += (targetX - group.position.x) * 0.08
-    group.scale.setScalar(group.scale.x + (targetScale - group.scale.x) * 0.1)
-    cube.rotation.x += 0.008
-    cube.rotation.y += 0.012
+    group.position.x += (targetX - group.position.x) * (reduceMotion ? 1 : 0.08)
+    group.scale.setScalar(group.scale.x + (targetScale - group.scale.x) * (reduceMotion ? 1 : 0.1))
+    if (!reduceMotion) {
+      cube.rotation.x += 0.008
+      cube.rotation.y += 0.012
+    }
   })
   renderer.render(scene, camera)
 }
@@ -580,6 +583,7 @@ function createScene() {
     cubeStates.push({ group, cube })
   }
 
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   createLabels()
   resizeObserver = new ResizeObserver(resize)
   resizeObserver.observe(sceneHost.value)
@@ -668,17 +672,22 @@ onSlideLeave(disposeScene)
 }
 </style>
 
+<!--
+- Goal: introduce the rendering option, not promise a universal speedup. Show: reveal the three labels in order. Use: GPU drawing alongside D3 calculations. Limit: changing renderers does not remove CPU-side work.
+- The cubes are decorative illustrations. Their positions, sizes, and rotation do not encode records. Reduced motion on entry makes reveals immediate and stops rotation.
+-->
+
 ---
 
 # What Is Three.js?
 
-Three.js makes WebGL easier, like React or Vue makes the DOM API easier.
+Three.js gives us a friendlier way to work with WebGL: shapes, materials, cameras, and drawing.
 
-It is a JavaScript library that provides a convenient API for sending graphics data to the GPU for rendering.
+JavaScript still prepares the work. The GPU renders it.
 
-- Open source!
-- Big community!
-- Well documented!
+<div class="svg-demo-panel renderer-choice">
+<strong>Choose what fits your task.</strong> SVG keeps marks in the DOM. Canvas 2D offers direct 2D drawing. Three.js adds GPU-oriented rendering tools. D3 can work with all three.
+</div>
 
 ---
 class: handoff-slide
@@ -846,55 +855,31 @@ Callback time is not complete GPU/display frame time.
 
 ---
 
-# No Longer Shamed
+# A Result I Could Feel Good About
 
-Now that the visualization was changed from SVG to Three.js and the performance issues had been addressed I was far more confident in my contribution to the project.
-
----
-
-# Lets Talk About How Three.js Works
-
-- How SVG renders vs Three.js
-- Easy optimiztions
-- Performance Checklist
-- Interactivity
-- Accessibility
-- Animation Tips
-- Advanced Three.js features
+The map was smoother, the graphics were richer, and I felt more confident in what we had built.
 
 ---
-class: svg-demo-slide three-render-demo-slide
+
+# Let’s Build on That
+
+- Keep D3’s calculations; choose how to draw
+- Reuse work and measure the result
+- Make interaction and data accessible
+- Add motion and detail where they help
+
+---
+class: demo-slide rendering-demo
 ---
 
-# How SVG Draws Paths
+# Draw a Shape with SVG
 
-<div class="svg-demo-layout">
-  <div class="svg-demo-left three-demo-left" :class="{ 'cards-swapped': cardsSwapped }">
-    <section
-      class="svg-demo-panel svg-demo-description"
-      :class="{ 'is-front': !cardsSwapped, 'is-back': cardsSwapped }"
-      :role="cardsSwapped ? 'button' : undefined"
-      :tabindex="cardsSwapped ? 0 : -1"
-      :aria-label="cardsSwapped ? 'Show drawing controls' : undefined"
-      @click="cardsSwapped && swapCards()"
-      @keydown.enter="cardsSwapped && swapCards()"
-      @keydown.space.prevent="cardsSwapped && swapCards()"
-    >
-      <h2>Shapes + styles</h2>
-      <p>SVG rendering combines shapes, fills, strokes, and filters.</p>
-      <p>Each shape stays in the DOM, so the browser can style and update it directly.</p>
-    </section>
-    <div
-      class="svg-demo-panel svg-demo-controls three-demo-controls"
-      :class="{ 'is-front': cardsSwapped, 'is-back': !cardsSwapped }"
-      role="group"
-      :tabindex="cardsSwapped ? -1 : 0"
-      :aria-label="cardsSwapped ? 'Change the drawing' : 'Show drawing controls'"
-      @click="!cardsSwapped && swapCards()"
-      @keydown.enter="!cardsSwapped && swapCards()"
-      @keydown.space.prevent="!cardsSwapped && swapCards()"
-    >
-      <h2>Style the shape</h2>
+<div class="demo-kind">Illustration</div>
+<div class="demo-lead">A shape is a DOM element. Change its attributes to change its appearance.</div>
+
+<div class="svg-demo-layout demo-stage">
+    <section class="svg-demo-panel svg-demo-controls">
+      <h2>Try changing the color</h2>
       <label for="svg-shape">
         <span>Shape</span>
         <select id="svg-shape" v-model="shape">
@@ -904,12 +889,8 @@ class: svg-demo-slide three-render-demo-slide
           <option value="blob">Organic Blob</option>
         </select>
       </label>
-      <label class="three-demo-checkbox" for="svg-fill">
-        <span>Fill</span>
-        <input id="svg-fill" v-model="filled" type="checkbox" />
-      </label>
       <label for="svg-color">
-        <span>Diffuse color <output>{{ hue }}°</output></span>
+        <span>Color <output>{{ hue }}°</output></span>
         <input
           id="svg-color"
           v-model.number="hue"
@@ -919,6 +900,12 @@ class: svg-demo-slide three-render-demo-slide
           step="1"
           :style="{ accentColor: color }"
         />
+      </label>
+      <details class="demo-more">
+        <summary @keydown.space.stop>More SVG controls</summary>
+      <label class="three-demo-checkbox" for="svg-fill">
+        <span>Fill</span>
+        <input id="svg-fill" v-model="filled" type="checkbox" />
       </label>
       <label for="svg-opacity">
         <span>Opacity <output>{{ opacity }}%</output></span>
@@ -941,14 +928,14 @@ class: svg-demo-slide three-render-demo-slide
         <span>Pattern scale <output>{{ textureScale }}×</output></span>
         <input id="svg-texture-scale" v-model.number="textureScale" type="range" min="1" max="8" step="1" />
       </label>
-    </div>
-  </div>
+      </details>
+    </section>
   <section class="svg-demo-panel svg-demo-output">
     <div class="svg-demo-output-header">
       <h2>SVG Output</h2>
       <div class="svg-demo-view-toggle" role="radiogroup" aria-label="SVG output view">
         <label :class="{ 'is-selected': view === 'rendered' }"><input v-model="view" name="svg-view" type="radio" value="rendered" /><span>Rendered</span></label>
-        <label :class="{ 'is-selected': view === 'code' }"><input v-model="view" name="svg-view" type="radio" value="code" /><span>Code</span></label>
+        <label :class="{ 'is-selected': view === 'code' }"><input v-model="view" name="svg-view" type="radio" value="code" /><span>Code sketch</span></label>
       </div>
     </div>
     <svg v-if="view === 'rendered'" viewBox="0 0 400 300" role="img" aria-label="Interactive SVG drawing">
@@ -982,13 +969,14 @@ class: svg-demo-slide three-render-demo-slide
   </section>
 </div>
 
+<div class="demo-takeaway">Use SVG for direct styling and interaction. Measure the cost when many marks change.</div>
+
 <script setup>
 import { computed, ref } from 'vue'
 
 const view = ref('rendered')
 const shape = ref('circle')
 const hue = ref(210)
-const cardsSwapped = ref(false)
 const filled = ref(true)
 const opacity = ref(100)
 const strokeWidth = ref(5)
@@ -1002,10 +990,6 @@ const fill = computed(() => {
   if (textureChoice.value === 'dots') return 'url(#svg-demo-dots-texture)'
   return color.value
 })
-
-function swapCards() {
-  cardsSwapped.value = !cardsSwapped.value
-}
 
 const svgCode = computed(() => {
   const attributes = `fill="${fill.value}" stroke="#0f172a" stroke-width="${strokeWidth.value}" opacity="${(opacity.value / 100).toFixed(2)}"${textureChoice.value === 'noise' ? ' filter="url(#svg-demo-noise)"' : ''}`
@@ -1269,39 +1253,23 @@ const highlightedSvgCode = computed(() => svgCode.value.split('\n').map(highligh
 }
 </style>
 
+<!--
+- Goal: connect a visible shape to a DOM element and its attributes. Show: move Color once; leave More SVG controls closed. Use: SVG's direct styling and interaction. Limit: repeated updates can become expensive, so profile the workload.
+- This is a toy drawing, not case-study evidence. Code sketch shows the main attributes with supporting filter/setup details omitted; it is not an exact serialization of the rendered DOM.
+-->
+
 ---
-class: svg-demo-slide three-render-demo-slide
+class: demo-slide rendering-demo
 ---
 
-# How Three.js Renders Objects
+# Build a Three.js Object
 
-<div class="svg-demo-layout">
-  <div class="svg-demo-left three-demo-left" :class="{ 'cards-swapped': cardsSwapped }">
-    <section
-      class="svg-demo-panel svg-demo-description"
-      :class="{ 'is-front': !cardsSwapped, 'is-back': cardsSwapped }"
-      :role="cardsSwapped ? 'button' : undefined"
-      :tabindex="cardsSwapped ? 0 : -1"
-      :aria-label="cardsSwapped ? 'Show scene controls' : undefined"
-      @click="cardsSwapped && swapCards()"
-      @keydown.enter="cardsSwapped && swapCards()"
-      @keydown.space.prevent="cardsSwapped && swapCards()"
-    >
-      <h2>Geometry + material + mesh</h2>
-      <p>Three.js rendering combines geometry, material, and mesh.</p>
-      <p>Geometry describes the shape, material describes its appearance, and a mesh combines them for the scene.</p>
-    </section>
-    <div
-      class="svg-demo-panel svg-demo-controls three-demo-controls"
-      :class="{ 'is-front': cardsSwapped, 'is-back': !cardsSwapped }"
-      role="group"
-      :tabindex="cardsSwapped ? -1 : 0"
-      :aria-label="cardsSwapped ? 'Change the Three.js scene' : 'Show scene controls'"
-      @click="!cardsSwapped && swapCards()"
-      @keydown.enter="!cardsSwapped && swapCards()"
-      @keydown.space.prevent="!cardsSwapped && swapCards()"
-    >
-      <h2>Build the scene</h2>
+<div class="demo-kind">Illustration</div>
+<div class="demo-lead">Geometry gives the shape. Material gives the appearance. A mesh brings them together.</div>
+
+<div class="svg-demo-layout demo-stage">
+    <section class="svg-demo-panel svg-demo-controls">
+      <h2>Try Box → Sphere</h2>
       <label for="three-geometry">
         <span>Geometry</span>
         <select id="three-geometry" v-model="shape">
@@ -1311,6 +1279,8 @@ class: svg-demo-slide three-render-demo-slide
           <option value="suzanne">Suzanne</option>
         </select>
       </label>
+      <details class="demo-more">
+        <summary @keydown.space.stop>More material controls</summary>
       <label class="three-demo-checkbox" for="three-wireframe">
         <span>Wireframe</span>
         <input id="three-wireframe" v-model="wireframe" type="checkbox" />
@@ -1320,7 +1290,7 @@ class: svg-demo-slide three-render-demo-slide
         <input id="three-smooth" v-model="smoothShading" type="checkbox" />
       </label>
       <label for="three-diffuse">
-        <span>Diffuse color <output>{{ hue }}°</output></span>
+        <span>Color <output>{{ hue }}°</output></span>
         <input
           id="three-diffuse"
           v-model.number="hue"
@@ -1332,7 +1302,7 @@ class: svg-demo-slide three-render-demo-slide
         />
       </label>
       <label for="three-specular">
-        <span>Specular power <output>{{ specular }}</output></span>
+        <span>Shininess <output>{{ specular }}</output></span>
         <input id="three-specular" v-model.number="specular" type="range" min="0" max="100" step="1" />
       </label>
       <label for="three-texture">
@@ -1348,20 +1318,23 @@ class: svg-demo-slide three-render-demo-slide
         <span>Texture scale <output>{{ textureScale }}×</output></span>
         <input id="three-texture-scale" v-model.number="textureScale" type="range" min="1" max="8" step="1" />
       </label>
-    </div>
-  </div>
+      </details>
+      <p class="demo-caption">The material stays the same when you change the geometry.</p>
+    </section>
   <section class="svg-demo-panel svg-demo-output">
     <div class="svg-demo-output-header">
       <h2>Three.js Output</h2>
       <div class="svg-demo-view-toggle" role="radiogroup" aria-label="Three.js output view">
         <label :class="{ 'is-selected': view === 'rendered' }"><input v-model="view" name="three-view" type="radio" value="rendered" /><span>Rendered</span></label>
-        <label :class="{ 'is-selected': view === 'code' }"><input v-model="view" name="three-view" type="radio" value="code" /><span>Code</span></label>
+        <label :class="{ 'is-selected': view === 'code' }"><input v-model="view" name="three-view" type="radio" value="code" /><span>Code sketch</span></label>
       </div>
     </div>
     <div v-show="view === 'rendered'" ref="sceneHost" class="three-demo-canvas" role="img" aria-label="Interactive Three.js scene"></div>
     <div v-show="view === 'code'" class="svg-demo-code" v-html="highlightedThreeCode"></div>
   </section>
 </div>
+
+<div class="demo-takeaway">Use meshes for geometry and materials. Keep controls and record descriptions in HTML.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -1373,17 +1346,12 @@ const sceneHost = ref(null)
 const view = ref('rendered')
 const shape = ref('box')
 const hue = ref(210)
-const cardsSwapped = ref(false)
 const wireframe = ref(false)
 const smoothShading = ref(true)
 const specular = ref(55)
 const textureChoice = ref('none')
 const textureScale = ref(2)
 const color = computed(() => `hsl(${hue.value}, 80%, 58%)`)
-
-function swapCards() {
-  cardsSwapped.value = !cardsSwapped.value
-}
 
 const geometryCode = computed(() => ({
   box: 'new THREE.BoxGeometry(1.5, 1.5, 1.5)',
@@ -1461,6 +1429,7 @@ let model
 let material
 let mapTexture
 let mapTextureKind
+let reduceMotion = false
 let loadRequest = 0
 let animationFrame
 let resizeObserver
@@ -1592,7 +1561,7 @@ function animate() {
   if (!renderer || !scene || !camera) return
 
   animationFrame = requestAnimationFrame(animate)
-  if (model) {
+  if (model && !reduceMotion) {
     model.rotation.x += 0.008
     model.rotation.y += 0.012
   }
@@ -1623,6 +1592,7 @@ function createScene() {
     wireframe: wireframe.value,
     flatShading: !smoothShading.value,
   })
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   updateMaterial()
   updateGeometry()
 
@@ -1654,6 +1624,11 @@ onSlideEnter(async () => {
 })
 onSlideLeave(disposeScene)
 </script>
+
+<!--
+- Goal: connect geometry and material to the rendered mesh. Show: change Box to Sphere once and notice that its material stays the same. Use: meshes when geometry and materials suit the visual task. Limit: they do not provide HTML controls or record descriptions for you.
+- This is an illustration, not a benchmark or a production-code adaptation. Code sketch shows the object setup; camera, rendering, and cleanup are omitted. Rotation is decorative and stops when reduced motion is enabled on entry.
+-->
 
 ---
 class: handoff-slide d3-handoff-slide
@@ -1703,6 +1678,7 @@ Data or view changes → reproject → update instance matrices → request a fr
 </div>
 
 <!--
+- Goal: show the numeric boundary rather than just promise compatibility. Show: follow the one illustrative event from its RA/Dec to the displayed position; no live interaction is needed. Use: keep D3's projection while changing rendering. Limit: clipping, coordinate conventions, and lifecycle still need explicit handling.
 - Adapted from portal-to-the-universe @ 6fc819a: modules_app/core/resources/assets/js/components/skyProjection.mjs createProjection() (line 37) and visiblePoint() (line 60); SkyMap.js projectMarkers() (line 202), updateMarkers() (line 263), and setData() (line 367).
 - The event is an illustrative fixture using the production field shape, not an asserted catalog record. Production coordinates() validates catalog values first; this example starts with valid numeric RA/Dec in degrees. Do not silently treat missing coordinates as zero.
 - At width 900 and zoom 1, the production scale formula gives (900 - 120) * (1 - 0.5) = 390. The rotation is an illustrative view setting. The numbers shown here are checked by node snippets/d3-handoff.mjs.
@@ -1987,25 +1963,23 @@ useEffect(() => {
 class: handoff-slide d3-handoff-slide
 ---
 
-# Resize and Teardown Are Part of Rendering
+# Resize and Clean Up
 
 <div class="mb-4 text-base text-slate-600">The component calls destroy(). The renderer releases what it owns.</div>
 
 <div class="grid grid-cols-2 gap-5">
 <div>
 
-<h2 class="font-bold text-blue-900">Resize the drawing, not the component tree</h2>
+<h2 class="font-bold text-blue-900">Inside the resize callback</h2>
 
 ```js
-const resize = new ResizeObserver(() => {
-  const box = container.getBoundingClientRect()
-  width = box.width; height = box.height
-  if (!width || !height) return
-  renderer.setSize(width, height, false)
-  viewDirty = true
-  requestFrame()
-})
-resize.observe(container)
+const box =
+  container.getBoundingClientRect()
+width = box.width; height = box.height
+if (!width || !height) return
+renderer.setSize(width, height, false)
+viewDirty = true
+requestFrame()
 ```
 
 <div class="mt-3 text-base text-slate-600">Next frame: recompute the D3 projection and this map’s orthographic camera bounds.</div>
@@ -2023,10 +1997,10 @@ resize.observe(container)
 </div>
 </div>
 
-<div class="mt-5 rounded-xl bg-blue-100 px-5 py-4 text-lg text-blue-900">Removing a DOM node does not stop a simulation or release all GPU resources.</div>
+<div class="mt-5 rounded-xl bg-blue-100 px-5 py-4 text-lg text-blue-900">Removing the canvas is not the same as cleaning up.</div>
 
 <!--
-- Source: portal-to-the-universe @ 6fc819a, SkyMap.js resizeRenderer() and destroy(). The excerpt uses the renderer's existing width/height variables, not new shadowing locals. Production also caps devicePixelRatio at 2 and observes visibility; those details are outside the visible resize excerpt.
+- Source: portal-to-the-universe @ 6fc819a, SkyMap.js resizeRenderer() and destroy(). The excerpt is the ResizeObserver callback body; observer creation and observe(container) are omitted. It uses the renderer's existing width/height variables, not new shadowing locals. Production also caps devicePixelRatio at 2 and observes visibility; those details are outside the visible resize excerpt.
 - viewDirty causes draw() to rebuild the geographic projection, update camera.right and camera.bottom, call camera.updateProjectionMatrix(), and refresh affected geometry before rendering. A PerspectiveCamera would instead need an updated aspect ratio. Changing canvas dimensions alone is insufficient.
 - renderer.setSize(width, height, false) changes the drawing buffer without taking over CSS layout. A zero-size guard avoids invalid projections while the host is hidden. In the Slidev demo, clientWidth/clientHeight deliberately exclude Slidev's outer CSS scale.
 - Production destroy() marks the renderer destroyed, cancels its requestAnimationFrame and tooltip timeout, aborts signal-bound listeners, disconnects resize/intersection observers, disposes unique owned geometries/materials/textures and instance resources, then disposes the renderer and removes its canvas.
@@ -2036,21 +2010,20 @@ resize.observe(container)
 -->
 
 ---
-class: instancing-slide
+class: demo-slide instancing-slide
 ---
 
-# Optimization One: InstancedMesh
+# InstancedMesh: Share the Shape
 
-<div class="instancing-claim">
-  <strong>One shape.</strong> Many copies. <strong>One draw call.</strong>
-</div>
+<div class="demo-kind">Illustration</div>
+<div class="demo-lead">Draw repeated marks with fewer submissions to the GPU.</div>
 
-<div class="instancing-scene-stage">
+<div class="instancing-scene-stage demo-stage demo-dark">
   <div ref="sceneHost" class="instancing-scene" role="img" aria-label="The same 3D markers rendered with separate meshes on the left and instancing on the right"></div>
   <div class="instancing-scene-divider" aria-hidden="true"></div>
   <div class="instancing-side-label instancing-side-label--left">
     <div class="instancing-eyebrow">WITHOUT INSTANCING</div>
-    <h2>One mesh + material per marker</h2>
+    <h2>Separate meshes</h2>
   </div>
   <div class="instancing-side-label instancing-side-label--right">
     <div class="instancing-eyebrow">WITH INSTANCING</div>
@@ -2059,28 +2032,26 @@ class: instancing-slide
   <div class="instancing-side-stats instancing-side-stats--left">
     <div class="instancing-counter" aria-live="polite">
       <div class="instancing-counter-item"><strong>{{ markerCount }}</strong><span>{{ markerCount === 1 ? 'Mesh' : 'Meshes' }}</span></div>
-      <span class="instancing-counter-plus">+</span>
-      <div class="instancing-counter-item"><strong>{{ markerCount }}</strong><span>{{ markerCount === 1 ? 'Material' : 'Materials' }}</span></div>
     </div>
-    <div class="instancing-draw-count">{{ markerCount }} draw {{ markerCount === 1 ? 'call' : 'calls' }}</div>
+    <div class="instancing-draw-count">{{ markerCount }} marker {{ markerCount === 1 ? 'draw' : 'draws' }} / pass</div>
   </div>
   <div class="instancing-side-stats instancing-side-stats--right">
     <div class="instancing-counter" aria-live="polite">
       <div class="instancing-counter-item"><strong>1</strong><span>InstancedMesh</span></div>
-      <span class="instancing-counter-plus">+</span>
-      <div class="instancing-counter-item"><strong>1</strong><span>Material</span></div>
     </div>
-    <div class="instancing-draw-count">1 draw call</div>
+    <div class="instancing-draw-count">1 marker draw / pass</div>
   </div>
 </div>
 
-<div class="instancing-controls">
-  <label for="instancing-count">Markers</label>
+<div class="instancing-controls demo-control">
+  <label for="instancing-count">Try 3 → 5 markers</label>
   <span class="instancing-range-bound">1</span>
   <input id="instancing-count" v-model.number="markerCount" type="range" min="1" max="5" step="1" :aria-label="'Number of markers: ' + markerCount" />
   <span class="instancing-range-bound">5</span>
   <output for="instancing-count" aria-live="polite">{{ markerCount }}</output>
 </div>
+
+<div class="demo-takeaway">Use for shared geometry and material. Every instance still takes GPU work.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -2112,6 +2083,7 @@ let rightMesh
 let leftMeshes = []
 let animationFrame
 let resizeObserver
+let reduceMotion = false
 
 function createView(background) {
   const view = new THREE.Scene()
@@ -2205,8 +2177,10 @@ function renderViews() {
   if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
 
   animationFrame = requestAnimationFrame(renderViews)
-  leftGroup.rotation.y += 0.004
-  rightGroup.rotation.y += 0.004
+  if (!reduceMotion) {
+    leftGroup.rotation.y += 0.004
+    rightGroup.rotation.y += 0.004
+  }
 
   const width = sceneHost.value.clientWidth
   const height = sceneHost.value.clientHeight
@@ -2239,6 +2213,7 @@ function createScene() {
   renderer.domElement.setAttribute('aria-hidden', 'true')
   sceneHost.value.appendChild(renderer.domElement)
 
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   updateInstances()
   resizeObserver = new ResizeObserver(resize)
   resizeObserver.observe(sceneHost.value)
@@ -2480,7 +2455,8 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- Ask: how many copies are there, and where is the bottleneck?
+- Goal: reduce repeated draw submissions. Show: move Markers from 3 to 5 once; both views gain the same marks. Use: repeated geometry/material. Limit: the GPU still processes every instance; this is not an FPS benchmark.
+- Counts are per view, per visible pass, with this opaque single-material setup and no shadows or extra passes. Groups, multiple materials, or extra rendering passes can add draws.
 - Use `Mesh` for one or a few objects, varied geometry/materials, or independently managed objects.
 - Use `InstancedMesh` for many copies that share geometry and material.
 - Instancing reduces CPU-side draw submissions; the GPU still renders every instance.
@@ -2492,32 +2468,31 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-class: buffer-geometry-slide
+class: demo-slide buffer-geometry-slide
 ---
 
-# Optimization Two: BufferGeometry
+# BufferGeometry: Work with Numbers
 
-<div class="buffer-claim">
-  When animated, SVG sends <strong>path text</strong>; BufferGeometry sends <strong>vertex numbers</strong>.
-</div>
+<div class="demo-kind">Diagram</div>
+<div class="demo-lead">When coordinates change, update numbers instead of rebuilding path text.</div>
 
-<div class="buffer-comparison">
+<div class="buffer-comparison demo-stage">
   <div class="buffer-lane buffer-lane--svg">
     <div class="buffer-lane-heading">
       <div class="buffer-eyebrow">SVG PATH ANIMATION</div>
       <h2>D3 → DOM → parser</h2>
     </div>
     <div class="buffer-flow">
-      <div class="buffer-step"><strong>D3</strong><small>coordinates</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--string"><code>d="M…"</code><small>serialize text</small></div><span class="buffer-arrow">→</span><div class="buffer-step"><strong>Browser</strong><small>parse + paint</small></div>
+      <div class="buffer-step buffer-step--string"><code>d="M…"</code><small>serialize text</small></div><span class="buffer-arrow">→</span><div class="buffer-step"><strong>Browser</strong><small>parse + paint</small></div>
     </div>
     <div class="buffer-plot">
-      <div class="buffer-plot-label">smooth path rebuilt from a string</div>
-      <svg viewBox="0 0 264 100" role="img" aria-label="A smooth SVG path">
+      <div class="buffer-plot-label">Coordinates encoded as path text</div>
+      <svg viewBox="0 0 264 100" role="img" aria-label="A line encoded as an SVG path string">
         <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
-        <path class="buffer-svg-path" d="M12 75 C28 32 49 65 68 38 S102 68 122 24 S164 58 188 30 S224 64 252 18" />
+        <path class="buffer-svg-path" d="M12 75 L35 48 L58 64 L81 36 L105 66 L129 26 L153 55 L178 31 L204 58 L230 21 L252 32" />
       </svg>
     </div>
-    <div class="buffer-cost buffer-cost--svg"><strong>N</strong> path strings parsed per frame</div>
+    <div class="buffer-cost">Update <code>d</code> when coordinates change.</div>
   </div>
   <div class="buffer-lane buffer-lane--buffer">
     <div class="buffer-lane-heading">
@@ -2525,21 +2500,21 @@ class: buffer-geometry-slide
       <h2>Numbers → GPU buffer</h2>
     </div>
     <div class="buffer-flow">
-      <div class="buffer-step"><strong>D3</strong><small>numbers</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--array"><code>Float32Array</code><small>position data</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--geometry"><strong>BufferGeometry</strong><small>one mesh</small></div>
+      <div class="buffer-step buffer-step--array"><code>Float32Array</code><small>position data</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--geometry"><strong>GPU</strong><small>draw vertices</small></div>
     </div>
     <div class="buffer-plot">
-      <div class="buffer-plot-label">same shape, stored as vertices</div>
+      <div class="buffer-plot-label">The same coordinates as vertices</div>
       <svg viewBox="0 0 264 100" role="img" aria-label="A line made from numeric vertices">
         <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
         <polyline class="buffer-buffer-path" points="12,75 35,48 58,64 81,36 105,66 129,26 153,55 178,31 204,58 230,21 252,32" />
         <g class="buffer-vertices"><circle cx="12" cy="75" r="3" /><circle cx="35" cy="48" r="3" /><circle cx="58" cy="64" r="3" /><circle cx="81" cy="36" r="3" /><circle cx="105" cy="66" r="3" /><circle cx="129" cy="26" r="3" /><circle cx="153" cy="55" r="3" /><circle cx="178" cy="31" r="3" /><circle cx="204" cy="58" r="3" /><circle cx="230" cy="21" r="3" /><circle cx="252" cy="32" r="3" /></g>
       </svg>
     </div>
-    <div class="buffer-cost buffer-cost--buffer"><strong>1</strong> mesh → <strong>1</strong> WebGL draw call</div>
+    <div class="buffer-cost">Upload changed numeric attributes.</div>
   </div>
 </div>
 
-<div class="buffer-summary"><strong>Same pixels.</strong> Fewer text parses. One geometry means one CPU draw submission.</div>
+<div class="demo-takeaway">Use buffers for vertex data. Batching separate objects is a separate decision.</div>
 
 <style>
 .buffer-geometry-slide {
@@ -2779,12 +2754,14 @@ class: buffer-geometry-slide
 </style>
 
 <!--
-- When animated D3 code updates `d`, it serializes numeric coordinates into a string.
+- Goal: avoid repeated coordinate-to-text updates. Show: trace the same eleven coordinates through each lane; no control interaction is needed. Use: numeric vertex data. Limit: BufferGeometry alone does not batch objects.
+- Both pictures are SVG diagrams, not renderer output captures. They use the same coordinates; line styling and vertex dots differ. We are not claiming identical pixels or a measured speedup.
+- When D3 code updates a path's `d`, it serializes numeric coordinates into a string. SVG can also animate transforms or styles without rebuilding path text.
 - The browser receives the DOM attribute, parses the path, and rebuilds its rendering data.
 - BufferGeometry stores vertex positions in typed arrays/BufferAttributes instead of path text.
-- BufferGeometry alone does not batch separate Meshes: consolidate vertices into one geometry/material/mesh for one draw call.
+- BufferGeometry alone does not batch separate meshes. A compatible single-material batch can make one draw per pass; groups, materials, and extra passes can add more.
 - Groups or multiple materials add draw calls.
-- The GPU still processes the vertices; the win is less JS/DOM/parser work and fewer CPU draw submissions.
+- The GPU still processes the vertices. Numeric buffers can avoid path-string work; fewer draw submissions require compatible batching as well.
 - This is an optimization for many related vertices, not a reason to replace every small or independent SVG path.
 -->
 
@@ -2929,49 +2906,43 @@ class: handoff-slide practical-guidance-slide
 Now that the fundamentals are in place, we can improve the experience.
 
 ---
-class: entry-exit-slide
+class: demo-slide entry-exit-slide
 ---
 
-# Animation: Entry and Exit
+# Help People Follow Entry and Exit
 
-<div class="entry-exit-claim">
-  Make changes legible: <strong>new records grow in</strong>; removed records shrink out.
-</div>
+<div class="demo-kind">Synthetic example</div>
+<div class="demo-lead">Make it clear which records arrived and which ones left.</div>
 
-<div class="entry-exit-layout">
+<div class="entry-exit-layout demo-stage">
   <div class="entry-exit-code-card">
-    <div class="entry-exit-card-eyebrow">D3 DATA + THREE.JS</div>
-    <h2>Enter · Exit</h2>
-    <pre class="entry-exit-code"><code><span class="entry-exit-code-muted">function</span> sync(data) {
-  <span class="entry-exit-code-muted">const</span> next = d3.index(data, d =&gt; d.id)
-  <span class="entry-exit-code-enter">// ENTER</span>
-  <span class="entry-exit-code-muted">for each</span> record missing from meshes:
-    mesh = createMesh(record)
-    scene.add(mesh)
-    animate(mesh.scale, 0 → 1)
-  <span class="entry-exit-code-exit">// EXIT</span>
-  <span class="entry-exit-code-muted">for each</span> mesh missing from next:
-    animate(mesh.scale, 1 → 0)
-    then scene.remove(mesh)
-}</code></pre>
+    <div class="entry-exit-card-eyebrow">Lifecycle sketch · pseudocode</div>
+    <h2>Keep track of each record</h2>
+    <pre class="entry-exit-code demo-code"><code><span class="entry-exit-code-enter">for each new record:</span>
+  add its mark
+  animate its entry
+<span class="entry-exit-code-exit">for each removed record:</span>
+  animate its exit
+  remove its mark</code></pre>
   </div>
   <div class="entry-exit-scene-card">
-    <div class="entry-exit-scene-frame">
+    <div class="entry-exit-scene-frame demo-dark">
       <div ref="sceneHost" class="entry-exit-scene-canvas" role="img" aria-label="Three.js scene showing data records entering and exiting"></div>
-      <div class="entry-exit-scene-title">THREE.JS SCENE</div>
       <div class="entry-exit-scene-count"><strong>{{ recordCount }}</strong> {{ recordCount === 1 ? 'record' : 'records' }}</div>
       <div class="entry-exit-scene-caption">new records grow in · removed records shrink out</div>
     </div>
   </div>
 </div>
 
-<div class="entry-exit-controls">
-  <label for="entry-exit-count">Records</label>
+<div class="entry-exit-controls demo-control">
+  <label for="entry-exit-count">Try 3 → 5 → 3 records</label>
   <span class="entry-exit-range-bound">0</span>
-  <input id="entry-exit-count" v-model.number="recordCount" type="range" min="0" max="5" step="1" :aria-label="'Number of records: ' + recordCount" @input="stopAutoCycle" />
+  <input id="entry-exit-count" v-model.number="recordCount" type="range" min="0" max="5" step="1" :aria-label="'Number of records: ' + recordCount" />
   <span class="entry-exit-range-bound">5</span>
   <output for="entry-exit-count" aria-live="polite">{{ recordCount }}</output>
 </div>
+
+<div class="demo-takeaway">Use transitions to explain membership. Don’t imply that a changing size is a changing value.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -2979,7 +2950,7 @@ import { nextTick, ref, watch } from 'vue'
 import { onSlideEnter, onSlideLeave } from '@slidev/client'
 
 const sceneHost = ref(null)
-const recordCount = ref(0)
+const recordCount = ref(3)
 const recordPositions = [
   new THREE.Vector3(-1.45, -0.05, 0.2),
   new THREE.Vector3(-0.85, -0.45, -0.3),
@@ -3006,29 +2977,7 @@ let geometry
 let materials
 let animationFrame
 let resizeObserver
-let cycleTimer
-let cycleDirection = 1
-let autoCycleEnabled = true
-
-function clearAutoCycle() {
-  if (cycleTimer) window.clearInterval(cycleTimer)
-  cycleTimer = undefined
-}
-
-function startAutoCycle() {
-  if (!autoCycleEnabled || cycleTimer) return
-
-  cycleTimer = window.setInterval(() => {
-    if (recordCount.value === 5) cycleDirection = -1
-    if (recordCount.value === 0) cycleDirection = 1
-    recordCount.value += cycleDirection
-  }, 3000)
-}
-
-function stopAutoCycle() {
-  autoCycleEnabled = false
-  clearAutoCycle()
-}
+let reduceMotion = false
 
 function createSceneView() {
   const view = new THREE.Scene()
@@ -3087,15 +3036,13 @@ function animate() {
   if (!renderer || !scene || !camera || !recordGroup) return
 
   animationFrame = requestAnimationFrame(animate)
-  recordGroup.rotation.y += 0.003
+  const easing = reduceMotion ? 1 : 0.12
   recordStates.forEach((state) => {
     if (!state.mesh) return
 
     const mesh = state.mesh
-    mesh.scale.setScalar(mesh.scale.x + (state.targetScale - mesh.scale.x) * 0.12)
-    mesh.position.y += (state.targetY - mesh.position.y) * 0.12
-    mesh.rotation.x += 0.008
-    mesh.rotation.y += 0.012
+    mesh.scale.setScalar(mesh.scale.x + (state.targetScale - mesh.scale.x) * easing)
+    mesh.position.y += (state.targetY - mesh.position.y) * easing
 
     if (state.status === 'exiting' && mesh.scale.x < 0.015) {
       mesh.removeFromParent()
@@ -3109,6 +3056,7 @@ function animate() {
 function createScene() {
   if (renderer || !sceneHost.value) return
 
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   scene = createSceneView()
   camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
   camera.position.set(0, 0.15, 5.4)
@@ -3135,7 +3083,6 @@ function createScene() {
 }
 
 function disposeScene() {
-  clearAutoCycle()
   if (animationFrame) cancelAnimationFrame(animationFrame)
   resizeObserver?.disconnect()
   recordStates.forEach((state) => {
@@ -3155,7 +3102,6 @@ watch(recordCount, syncRecords)
 onSlideEnter(async () => {
   await nextTick()
   createScene()
-  startAutoCycle()
 })
 onSlideLeave(disposeScene)
 </script>
@@ -3354,30 +3300,29 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- D3 supplies data and keys; Three.js owns the Mesh objects and scene lifecycle.
+- Goal: help people follow membership changes. Show: move Records from 3 to 5, then back to 3. Use: arrivals/removals. Limit: when size or position encodes a measured value, prefer opacity or another cue that does not suggest intermediate measurements.
+- This synthetic scene uses five fixed records, not live case-study data. The visible text is pseudocode, not the implementation; this demo does not call d3.index. Keyed data matching can come from D3, while Three.js owns the marks.
 - Enter and exit are lifecycle ideas here—not DOM/SVG selections.
 - New records start at zero size and transition into their target size.
 - Removed records shrink away first, then are removed from the scene.
-- The slider automatically cycles from zero to five and back every three seconds.
-- Adjusting it manually stops the cycle so you can hold on any state.
+- Start with three visible records. The data count changes only when the presenter changes the slider; there is no automatic cycle.
+- Decorative rotation is removed. Reduced motion on entry makes membership changes immediate.
 - At zero, every mesh exits and is cleaned up.
 - The slider is illustrative: the important idea is the animated lifecycle, not a performance benchmark.
 -->
 ---
-class: physical-properties-slide
+class: demo-slide physical-properties-slide
 ---
 
-# Animation: Physical Properties
+# Choose How to Show a Value
 
-<div class="physical-claim">
-  Keep <code>x</code> and <code>y</code> stable. Choose what the record’s <code>data</code> means visually.
-</div>
+<div class="demo-kind">Synthetic example</div>
+<div class="demo-lead">Keep each record’s position. Change how its value looks.</div>
 
-<div class="physical-layout">
+<div class="physical-layout demo-stage">
   <section class="physical-data-card">
-    <div class="physical-eyebrow">REPRESENTATIVE DATA</div>
     <h2>Five records</h2>
-    <pre class="physical-data-code"><code><span class="physical-code-keyword">const</span> records = [
+    <pre class="physical-data-code demo-code"><code><span class="physical-code-keyword">const</span> records = [
   { <span class="physical-code-key">x</span>: -1.8, <span class="physical-code-key">y</span>:  0.7, <span class="physical-code-data">data</span>: 15 },
   { <span class="physical-code-key">x</span>: -0.9, <span class="physical-code-key">y</span>: -0.6, <span class="physical-code-data">data</span>: 35 },
   { <span class="physical-code-key">x</span>:  0.0, <span class="physical-code-key">y</span>:  0.3, <span class="physical-code-data">data</span>: 55 },
@@ -3396,14 +3341,14 @@ class: physical-properties-slide
     </label>
   </section>
   <section class="physical-scene-card">
-    <div class="physical-scene-frame" @pointermove="tiltScene" @pointerleave="resetSceneTilt">
+    <div class="physical-scene-frame demo-dark" @pointermove="tiltScene" @pointerleave="resetSceneTilt">
       <div ref="sceneHost" class="physical-scene-canvas" role="img" :aria-label="'Three.js scene mapping record data to ' + mappingLabels[mapping] + '. Move the pointer over the scene to rotate it.'"></div>
-      <div class="physical-scene-title">THREE.JS SCENE</div>
-      <div class="physical-scene-map"><code>data</code><span>→</span><strong>{{ mappingLabels[mapping] }}</strong></div>
-      <div class="physical-scene-caption"><code>x</code> and <code>y</code> anchor each record · move pointer to rotate</div>
+      <div class="physical-scene-caption">Positions stay fixed in data space</div>
     </div>
   </section>
 </div>
+
+<div class="demo-takeaway">Try Scale → Color. Use a clear legend; size, shape, and rotation aren’t interchangeable.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -3436,19 +3381,20 @@ let animationFrame
 let resizeObserver
 let targetTiltX = 0
 let targetTiltY = 0
+let reduceMotion = false
 const meshStates = []
 
 function applyMapping() {
   if (!meshStates.length) return
 
-  meshStates.forEach(({ mesh, record, targetColor, targetRotation }, index) => {
+  meshStates.forEach(({ mesh, record, targetColor, targetRotation }) => {
     const amount = record.data / 100
     mesh.geometry = geometries[0]
     mesh.userData.targetScale = 1
     targetColor.set(0x38bdf8)
     targetRotation.set(0.25, 0.35, 0)
 
-    if (mapping.value === 'mesh') mesh.geometry = geometries[index + 1]
+    if (mapping.value === 'mesh') mesh.geometry = geometries[Math.min(5, 1 + Math.floor(record.data / 20))]
     if (mapping.value === 'color') targetColor.setHSL(0.62 - amount * 0.55, 0.82, 0.58)
     if (mapping.value === 'scale') mesh.userData.targetScale = 0.5 + amount
     if (mapping.value === 'rotation') targetRotation.set(0.2, amount * Math.PI, amount * Math.PI * 1.5)
@@ -3482,17 +3428,18 @@ function animate() {
   if (!renderer || !scene || !camera) return
 
   animationFrame = requestAnimationFrame(animate)
+  const easing = reduceMotion ? 1 : 0.08
   if (plotGroup) {
-    plotGroup.rotation.x = THREE.MathUtils.lerp(plotGroup.rotation.x, targetTiltX, 0.08)
-    plotGroup.rotation.y = THREE.MathUtils.lerp(plotGroup.rotation.y, targetTiltY, 0.08)
+    plotGroup.rotation.x = THREE.MathUtils.lerp(plotGroup.rotation.x, targetTiltX, easing)
+    plotGroup.rotation.y = THREE.MathUtils.lerp(plotGroup.rotation.y, targetTiltY, easing)
   }
   meshStates.forEach(({ mesh, targetColor, targetRotation }) => {
-    const scale = THREE.MathUtils.lerp(mesh.scale.x, mesh.userData.targetScale, 0.08)
+    const scale = THREE.MathUtils.lerp(mesh.scale.x, mesh.userData.targetScale, easing)
     mesh.scale.setScalar(scale)
-    mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, targetRotation.x, 0.08)
-    mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, targetRotation.y, 0.08)
-    mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, targetRotation.z, 0.08)
-    mesh.material.color.lerp(targetColor, 0.08)
+    mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, targetRotation.x, easing)
+    mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, targetRotation.y, easing)
+    mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, targetRotation.z, easing)
+    mesh.material.color.lerp(targetColor, easing)
   })
   renderer.render(scene, camera)
 }
@@ -3557,6 +3504,7 @@ function createScene() {
   renderer.domElement.setAttribute('aria-hidden', 'true')
   sceneHost.value.appendChild(renderer.domElement)
 
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   applyMapping()
   resizeObserver = new ResizeObserver(resize)
   resizeObserver.observe(sceneHost.value)
@@ -3793,9 +3741,10 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- `x` and `y` always map to position, so each record keeps its identity as the visual channel changes.
+- Goal: choose a visual channel people can interpret. Show: switch from Scale to Color once, keeping the same records. Use: a channel that fits the data. Limit: these examples need legends and are not equally good for precise comparison.
+- `x` and `y` always map to local position. Pointer tilt changes the view, not the values; the screen positions can therefore move. Stable record IDs—not positions alone—preserve identity.
 - The dropdown remaps the same `data` value to mesh shape, color, scale, or rotation.
-- Mesh shape is a categorical threshold mapping; the other examples use continuous numeric mappings.
+- Mesh shape uses 20-point bands of the value, independent of record order. Shape does not provide a natural magnitude order. Scale is linear size = 0.5 + value/100, not proportional area or volume; rotation is a weak quantitative encoding. These are choices to evaluate, not four interchangeable recommendations.
 - Animate between mappings so viewers can track the same records instead of decoding a replacement scene.
 - Moving the pointer rotates the entire plot group, making the scene’s depth easier to see.
 - Position and scale are easier to compare precisely than color or rotation.
@@ -3804,16 +3753,15 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-class: staggering-slide
+class: demo-slide staggering-slide
 ---
 
-# Animation: Staggering
+# Guide Attention with Timing
 
-<div class="stagger-claim">
-  Same records. Same animation. <strong>Only the start time changes.</strong>
-</div>
+<div class="demo-kind">Synthetic example</div>
+<div class="demo-lead">The same entry animation, with a small delay between records.</div>
 
-<div class="stagger-stage">
+<div class="stagger-stage demo-stage demo-dark">
   <div ref="sceneHost" class="stagger-scene" role="img" aria-label="Comparison of simultaneous and staggered Three.js entry animations"></div>
   <div class="stagger-divider" aria-hidden="true"></div>
   <section class="stagger-label stagger-label--left">
@@ -3826,13 +3774,13 @@ class: staggering-slide
     <h2>One after another</h2>
     <div class="stagger-delay stagger-delay--right">delay = index × 30 ms</div>
   </section>
-  <div class="stagger-record-count stagger-record-count--left">12 records</div>
-  <div class="stagger-record-count stagger-record-count--right">12 records</div>
 </div>
 
 <button class="stagger-load-button" type="button" @click="loadData">
-  {{ hasLoaded ? 'Replay loading' : 'Simulate loading' }}
+  {{ hasLoaded ? 'Replay entry' : 'Play entry' }}
 </button>
+
+<div class="demo-takeaway">Use timing to guide attention. Cap the total delay; this doesn’t make rendering faster.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -3865,6 +3813,7 @@ let leftStates = []
 let rightStates = []
 let animationFrame
 let resizeObserver
+let reduceMotion = false
 
 function createView(background) {
   const view = new THREE.Scene()
@@ -3928,11 +3877,9 @@ function loadData() {
 
 function updateEntries(states, time) {
   states.forEach((state) => {
-    state.mesh.rotation.x += 0.006
-    state.mesh.rotation.y += 0.009
-    if (state.startAt === undefined || time < state.startAt) return
+    if (state.startAt === undefined || (!reduceMotion && time < state.startAt)) return
 
-    const progress = THREE.MathUtils.clamp((time - state.startAt) / entryDuration, 0, 1)
+    const progress = reduceMotion ? 1 : THREE.MathUtils.clamp((time - state.startAt) / entryDuration, 0, 1)
     const eased = 1 - Math.pow(1 - progress, 3)
     state.mesh.scale.setScalar(state.targetScale * eased)
     state.mesh.position.y = state.position.y - 0.35 * (1 - eased)
@@ -3978,6 +3925,7 @@ function animate(time = performance.now()) {
 function createScene() {
   if (renderer || !sceneHost.value) return
 
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   leftScene = createView(0x081426)
   rightScene = createView(0x0a1d2d)
   leftCamera = createCamera()
@@ -4185,42 +4133,45 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- The button resets both scenes and loads the same twelve records.
-- Every marker uses the same 550 ms entry animation.
+- Goal: make a sequence easier to follow. Show: press Play entry once and compare the two sides. Use: a short, meaningful order. Limit: delay adds waiting; it is not a rendering optimization.
+- The button resets both scenes and shows the same twelve synthetic records; no network request is made.
+- Every marker uses the same 550 ms entry animation. These are appearance transitions, not changes to the records' values. Prefer opacity-only entry if movement or scale could be read as a quantitative change.
 - The left starts every marker at the same time.
 - The right starts each marker 30 ms after the previous marker.
 - Staggering does not make rendering faster; it controls pacing and directs attention.
 - Sort records into a meaningful order before staggering them.
 - Cap the total delay or animate in batches for large datasets.
-- Respect reduced-motion preferences by shortening or removing delays.
+- With reduced motion enabled on entry, the button shows every record immediately. Decorative rotation is removed so only the timing differs.
 -->
 
 ---
-class: idle-motion-slide
+class: demo-slide idle-motion-slide
 ---
 
-# Animation: Idle Motion
+# Keep Data Positions Still
 
-<div class="idle-claim">
-  Add life, not meaning. <strong>The data stays exactly the same.</strong>
-</div>
+<div class="demo-kind">Synthetic example</div>
+<div class="demo-lead">Decorative rotation is optional. Moving a plotted position can suggest a new value.</div>
 
-<div class="idle-stage">
+<div class="idle-stage demo-stage demo-dark">
   <div ref="sceneHost" class="idle-scene" role="img" aria-label="The same Three.js data points shown static on the left and with decorative idle motion on the right"></div>
   <div class="idle-divider" aria-hidden="true"></div>
   <section class="idle-label idle-label--left">
     <div class="idle-eyebrow">STATIC</div>
     <h2>Perfectly still</h2>
-    <div class="idle-motion-badge idle-motion-badge--left">motion = none</div>
   </section>
   <section class="idle-label idle-label--right">
     <div class="idle-eyebrow">IDLE MOTION</div>
-    <h2>Subtle movement</h2>
-    <div class="idle-motion-badge idle-motion-badge--right">decorative only</div>
+    <h2>Rotation only</h2>
   </section>
-  <div class="idle-caption idle-caption--left">fixed position · fixed rotation</div>
-  <div class="idle-caption idle-caption--right">small loop · offset phases · stable anchor</div>
+  <div class="idle-caption idle-caption--left demo-caption">fixed position · fixed rotation</div>
+  <div class="idle-caption idle-caption--right demo-caption">fixed position · decorative rotation</div>
 </div>
+
+<div class="demo-action">
+  <button class="demo-button" type="button" :disabled="reduceMotion" :aria-pressed="motionPaused || reduceMotion" @click="motionPaused = !motionPaused">{{ reduceMotion ? 'Rotation off (reduced motion)' : motionPaused ? 'Resume rotation' : 'Pause rotation' }}</button>
+</div>
+<div class="demo-takeaway">Use sparingly when orientation has no meaning. Let people pause.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -4228,6 +4179,8 @@ import { nextTick, ref } from 'vue'
 import { onSlideEnter, onSlideLeave } from '@slidev/client'
 
 const sceneHost = ref(null)
+const motionPaused = ref(false)
+const reduceMotion = ref(false)
 const pointPositions = [
   new THREE.Vector3(-1.25, 0.55, -0.1),
   new THREE.Vector3(-0.42, 0.7, -0.3),
@@ -4252,7 +4205,6 @@ let grids = []
 let rightStates = []
 let animationFrame
 let resizeObserver
-let reduceMotion = false
 
 function createView(background) {
   const view = new THREE.Scene()
@@ -4315,13 +4267,10 @@ function animate(time = performance.now()) {
   if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
 
   animationFrame = requestAnimationFrame(animate)
-  if (!reduceMotion) {
+  if (!reduceMotion.value && !motionPaused.value) {
     const seconds = time / 1000
-    rightStates.forEach(({ mesh, position, rotation, phase }) => {
+    rightStates.forEach(({ mesh, rotation, phase }) => {
       const wave = seconds * 0.85 + phase
-      mesh.position.x = position.x + Math.cos(wave * 0.8) * 0.02
-      mesh.position.y = position.y + Math.sin(wave) * 0.06
-      mesh.position.z = position.z + Math.sin(wave * 0.65) * 0.04
       mesh.rotation.x = rotation.x + Math.sin(wave * 0.7) * 0.08
       mesh.rotation.y = rotation.y + seconds * 0.12
       mesh.rotation.z = rotation.z + Math.cos(wave * 0.6) * 0.06
@@ -4344,7 +4293,7 @@ function animate(time = performance.now()) {
 function createScene() {
   if (renderer || !sceneHost.value) return
 
-  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   leftScene = createView(0x081426)
   rightScene = createView(0x0a1d2d)
   leftCamera = createCamera()
@@ -4517,11 +4466,11 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- Both sides render identical marks in identical anchored positions.
-- The right adds a small looping bob and rotation; none of it is mapped to data.
+- Goal: separate decoration from data. Show: compare the two sides, then press Pause rotation once. Use: orientation-neutral decoration. Limit: even subtle motion can distract, and it is misleading if orientation encodes a value.
+- Both sides keep identical mark positions. The right changes rotation only; the earlier positional bob has been removed. None of the rotation is mapped to data.
 - Every mark uses the same amplitude and speed with offset phases, so the motion feels organic rather than synchronized.
 - Keep idle movement slow and low-amplitude so it does not compete with the visualization.
-- Motion should orbit a stable anchor so viewers do not mistake it for a changing value.
+- Do not move a data-encoded position just to make a chart look alive. A stable hidden anchor does not prevent a moving visible mark from being misleading.
 - The demo becomes static when the user prefers reduced motion.
 - Stop animation work when the visualization is offscreen or hidden.
 -->
@@ -4533,17 +4482,16 @@ onSlideLeave(disposeScene)
 The renderer opens the door to a broader set of GPU-powered tools.
 
 ---
-class: billboard-slide
+class: demo-slide billboard-slide
 ---
 
-# Three.js Tool: Billboard Images
+# Keep Images Facing the Camera
 
-<div class="billboard-claim">
-  A billboard is a 2D image that <strong>always faces the camera.</strong>
-</div>
+<div class="demo-kind">Illustration</div>
+<div class="demo-lead">Billboards keep icons readable as the viewing angle changes.</div>
 
 <div
-  class="billboard-stage"
+  class="billboard-stage demo-stage demo-dark"
   @pointermove="handlePointerMove"
   @pointerleave="resetPointer"
 >
@@ -4552,17 +4500,17 @@ class: billboard-slide
   <section class="billboard-label billboard-label--left">
     <div class="billboard-eyebrow">FIXED PLANES</div>
     <h2>World-aligned images</h2>
-    <div class="billboard-badge billboard-badge--left">rotation stays fixed</div>
   </section>
   <section class="billboard-label billboard-label--right">
     <div class="billboard-eyebrow">BILLBOARDS</div>
     <h2>Camera-facing images</h2>
-    <div class="billboard-badge billboard-badge--right">THREE.Sprite</div>
   </section>
-  <div class="billboard-caption billboard-caption--left">PlaneGeometry · same texture · same positions</div>
-  <div class="billboard-caption billboard-caption--right">Sprite · same texture · same positions</div>
-  <div class="billboard-hint">↔ Move the pointer to orbit both cameras</div>
+  <div class="billboard-caption billboard-caption--left demo-caption">PlaneGeometry · same texture · same positions</div>
+  <div class="billboard-caption billboard-caption--right demo-caption">Sprite · same texture · same positions</div>
+  <div class="billboard-hint">Try moving the pointer left to right</div>
 </div>
+
+<div class="demo-takeaway">Use for icons and labels. Keep fixed planes when surface direction matters.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -4943,6 +4891,7 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
+- Goal: keep images legible while the view changes. Show: move the pointer left to right once. Use: icons/labels whose orientation carries no data. Limit: sprites can overlap and are not automatically instanced.
 - Both sides use the same texture, positions, perspective, and camera movement.
 - The left uses ordinary `PlaneGeometry`, so every image keeps its world-space orientation.
 - The right uses `THREE.Sprite`; the renderer keeps each image facing the camera.
@@ -4955,65 +4904,39 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-class: shader-slide
+class: demo-slide shader-slide
 ---
 
-# Three.js Tool: Shaders
+# Shaders: Apply a Rule in Parallel
 
-<div class="shader-claim">
-  One small program. <strong>Thousands of parallel calculations.</strong>
-</div>
+<div class="demo-kind">Illustration</div>
+<div class="demo-lead">Vertex shaders change geometry. Fragment shaders color the surface.</div>
 
-<div class="shader-stage">
-  <section class="shader-code-panel">
-    <div class="shader-code-heading">
-      <span class="shader-code-step shader-code-step--vertex">VERTEX</span>
-      Move each vertex
-      <span class="shader-language">GLSL</span>
-    </div>
-    <div class="shader-code">
-      <span class="shader-code-line"><span class="shader-token-keyword">uniform</span> <span class="shader-token-type">float</span> <span class="shader-token-uniform">uTime</span>;</span>
-      <span class="shader-code-line"><span class="shader-token-keyword">uniform</span> <span class="shader-token-type">float</span> <span class="shader-token-uniform">uAmplitude</span>;</span>
-      <span class="shader-code-line"><span class="shader-token-keyword">varying</span> <span class="shader-token-type">float</span> vHeight;</span>
-      <span class="shader-code-line"><span class="shader-token-type">void</span> <span class="shader-token-function">main</span>() {</span>
-      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> p = <span class="shader-token-builtin">position</span>;</span>
-      <span class="shader-code-line shader-code-line--indent">vHeight = <span class="shader-token-function">sin</span>(p.x * <span class="shader-token-number">3.0</span> + <span class="shader-token-uniform">uTime</span>)</span>
-      <span class="shader-code-line shader-code-line--double-indent">* <span class="shader-token-uniform">uAmplitude</span>;</span>
-      <span class="shader-code-line shader-code-line--indent">p.z += vHeight;</span>
-      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-builtin">gl_Position</span> = <span class="shader-token-builtin">projectionMatrix</span></span>
-      <span class="shader-code-line shader-code-line--double-indent">* <span class="shader-token-builtin">modelViewMatrix</span> * <span class="shader-token-type">vec4</span>(p, <span class="shader-token-number">1.0</span>);</span>
-      <span class="shader-code-line">}</span>
-    </div>
-    <div class="shader-code-heading shader-code-heading--fragment">
-      <span class="shader-code-step shader-code-step--fragment">FRAGMENT</span>
-      Color each fragment
-    </div>
-    <div class="shader-code shader-code--fragment">
-      <span class="shader-code-line"><span class="shader-token-keyword">varying</span> <span class="shader-token-type">float</span> vHeight;</span>
-      <span class="shader-code-line"><span class="shader-token-type">void</span> <span class="shader-token-function">main</span>() {</span>
-      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">float</span> height = <span class="shader-token-function">smoothstep</span>(<span class="shader-token-number">-0.45</span>, <span class="shader-token-number">0.45</span>, vHeight);</span>
-      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> low = <span class="shader-token-type">vec3</span>(<span class="shader-token-number">0.12</span>, <span class="shader-token-number">0.23</span>, <span class="shader-token-number">0.54</span>);</span>
-      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> high = <span class="shader-token-type">vec3</span>(<span class="shader-token-number">0.13</span>, <span class="shader-token-number">0.83</span>, <span class="shader-token-number">0.93</span>);</span>
-      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-type">vec3</span> color = <span class="shader-token-function">mix</span>(low, high, height);</span>
-      <span class="shader-code-line shader-code-line--indent"><span class="shader-token-builtin">gl_FragColor</span> = <span class="shader-token-type">vec4</span>(color, <span class="shader-token-number">1.0</span>);</span>
-      <span class="shader-code-line">}</span>
-    </div>
+<div class="shader-stage demo-stage">
+  <section class="shader-code-panel demo-dark">
+
+<h2>Vertex: change the position</h2>
+
+<<< @/slides.md#shader-displacement glsl
+
+<h2 class="mt-4">Fragment: blend two colors</h2>
+
+<<< @/slides.md#shader-color glsl
+
+<p class="demo-caption">GLSL excerpts · setup and camera transform omitted.</p>
+
   </section>
 
-  <section class="shader-demo">
+  <section class="shader-demo demo-dark">
     <div ref="sceneHost" class="shader-scene" role="img" aria-label="A wave surface displaced and colored by a custom Three.js shader"></div>
     <div class="shader-demo-heading">
       <div>
         <span>GPU WAVE SURFACE</span>
-        Position becomes height; height becomes color.
-      </div>
-      <div class="shader-demo-stats">
-        <span>6,565 vertices</span>
-        <span>1 draw call</span>
+        A made-up wave, not measured data.
       </div>
     </div>
     <label class="shader-control" for="shader-amplitude">
-      <span>uAmplitude</span>
+      <span>Wave height</span>
       <input
         id="shader-amplitude"
         v-model.number="amplitude"
@@ -5027,6 +4950,8 @@ class: shader-slide
   </section>
 </div>
 
+<div class="demo-takeaway">Try Wave height → 0. Use shaders for repeated GPU work, not automatic speedups.</div>
+
 <script setup>
 import * as THREE from 'three'
 import { nextTick, ref, watch } from 'vue'
@@ -5039,9 +4964,12 @@ const vertexShader = `uniform float uTime;
 uniform float uAmplitude;
 varying float vHeight;
 void main() {
+  // #region shader-displacement
   vec3 p = position;
-  vHeight = sin(p.x * 3.0 + uTime) * uAmplitude;
+  vHeight = sin(p.x * 3.0 + uTime)
+    * uAmplitude;
   p.z += vHeight;
+  // #endregion
   gl_Position = projectionMatrix
     * modelViewMatrix * vec4(p, 1.0);
 }`
@@ -5051,8 +4979,10 @@ void main() {
   float height = smoothstep(-0.45, 0.45, vHeight);
   vec3 low = vec3(0.12, 0.23, 0.54);
   vec3 high = vec3(0.13, 0.83, 0.93);
+  // #region shader-color
   vec3 color = mix(low, high, height);
   gl_FragColor = vec4(color, 1.0);
+  // #endregion
 }`
 
 let renderer
@@ -5371,36 +5301,34 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- The plane contains 6,565 vertices, but the CPU updates only one `uTime` uniform each frame.
+- Goal: apply the same rule across many vertices/fragments. Show: lower Wave height to zero once. Use: repeated custom GPU calculations. Limit: this changes the rendered surface; do not animate measured heights unless the data actually changes.
+- The plane contains 6,565 vertices. For its motion, the CPU updates one uTime uniform per frame; JavaScript still schedules and submits rendering.
 - Uniforms are values shared by every shader invocation in a draw call; the slider updates `uAmplitude` without rebuilding geometry.
 - The vertex shader receives Three.js's `position` attribute and built-in projection and model-view matrices.
 - It changes each vertex's z position with the same sine function.
 - `vHeight` is interpolated across the triangle and passed into the fragment shader.
 - The fragment shader turns that height into a color for each fragment.
-- This is one mesh and one material, so it remains one draw call.
+- This example uses one opaque ShaderMaterial, one mesh, and one visible pass without shadows. It makes one draw in that pass; material groups, transparent double-sided rendering, or additional passes can change the count.
 - Shaders are valuable when many vertices or pixels need the same custom calculation; they are not automatically faster for every task.
 - Reduced-motion preferences freeze `uTime` while keeping the amplitude control usable.
 -->
 
 ---
-class: lod-slide
+class: demo-slide lod-slide
 ---
 
-# Three.js Tool: THREE.LOD
+# LOD: Match Detail to the View
 
-<div class="lod-claim">
-  Near objects need detail. <strong>Distant objects usually do not.</strong>
-</div>
+<div class="demo-kind">Illustration</div>
+<div class="demo-lead">Level of detail lets you use a simpler mesh when extra detail stops helping.</div>
 
-<div class="lod-stage">
+<div class="lod-stage demo-stage">
   <section class="lod-explainer">
-    <div class="lod-explainer-heading">CLICK A LEVEL · OR DRAG THE CAMERA</div>
-    <div class="lod-code">
-      <span><b>const</b> lod = <b>new</b> THREE.LOD()</span>
+    <div class="lod-explainer-heading">Create a THREE.LOD()</div>
+    <div class="lod-code demo-code">
       <span>lod.addLevel(high, <i>0</i>)</span>
       <span>lod.addLevel(medium, <i>7</i>)</span>
       <span>lod.addLevel(low, <i>10.5</i>)</span>
-      <span>scene.add(lod)</span>
     </div>
     <div class="lod-levels">
       <button type="button" class="lod-level" :class="{ 'lod-level--active': currentLevelIndex === 0 }" :aria-pressed="currentLevelIndex === 0" @click="selectLevel(0)">
@@ -5438,17 +5366,12 @@ class: lod-slide
       </button>
     </div>
   </section>
-  <section class="lod-demo">
+  <section class="lod-demo demo-dark">
     <div ref="sceneHost" class="lod-scene" role="img" aria-label="A rotating Three.js model changing detail as camera distance changes"></div>
     <div class="lod-demo-heading">
       <div>
         <span>MOVE THE CAMERA</span>
-        Cross a threshold; Three.js swaps the visible mesh.
-      </div>
-      <div class="lod-active-level">
-        <span>ACTIVE</span>
-        <strong>{{ currentLevel.name }}</strong>
-        <small>{{ currentLevel.triangles.toLocaleString() }} triangles</small>
+        Distance chooses the visible mesh.
       </div>
     </div>
     <label class="lod-shading-toggle">
@@ -5471,9 +5394,11 @@ class: lod-slide
   </section>
 </div>
 
+<div class="demo-takeaway">Try Near → Far. Useful for distant detail; extra levels still take memory.</div>
+
 <script setup>
 import * as THREE from 'three'
-import { computed, nextTick, ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { onSlideEnter, onSlideLeave } from '@slidev/client'
 
 const sceneHost = ref(null)
@@ -5485,7 +5410,6 @@ const levelMeta = [
   { name: 'MEDIUM', detail: 3, distance: 7, sampleDistance: 8.5, triangles: 320 },
   { name: 'LOW', detail: 0, distance: 10.5, sampleDistance: 12, triangles: 20 },
 ]
-const currentLevel = computed(() => levelMeta[currentLevelIndex.value] ?? levelMeta[0])
 
 let renderer
 let scene
@@ -5875,12 +5799,13 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- Click a level for a representative distance, or drag the slider from 4.5 to 13.5 units away.
+- Goal: avoid drawing detail that cannot be seen. Show: move the distance slider from near to far once. Use: multiple useful resolutions of an object. Limit: all levels remain in memory, and switching can pop.
+- The level buttons are optional shortcuts; use the distance slider for the planned demonstration.
 - `THREE.LOD` stores several representations of the same object, ordered by camera distance.
 - The renderer calls `lod.update(camera)` automatically and keeps only the matching level visible.
 - This demo swaps among 2,420, 320, and 20 triangle icosahedrons at distances 7 and 10.5.
 - At a distance, the low-detail silhouette is close enough while requiring far less vertex processing and triangle setup.
-- Only one level renders at a time, so this object still costs one draw call.
+- Here one level is visible, with one opaque material and no extra passes, so the object makes one draw in the visible pass. This is not a general draw-call guarantee for LOD.
 - Smooth shading changes how normals interpolate across those triangles; it does not change the active geometry or triangle count.
 - All geometries remain in memory; LOD trades additional memory and authoring work for lower rendering cost.
 - Real thresholds should be chosen from screen size and profiling, not arbitrary round numbers.
@@ -5889,23 +5814,21 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-class: texture-size-slide
+class: demo-slide texture-size-slide
 ---
 
-# Three.js Tool: Textures
+# Textures: Upload the Detail You Need
 
-<div class="texture-claim">
-  A texture costs its source size—<strong>even when rendered small.</strong>
-</div>
+<div class="demo-kind">Illustration</div>
+<div class="demo-lead">A small on-screen image can still use a large texture allocation.</div>
 
-<div class="texture-stage">
+<div class="texture-stage demo-stage demo-dark">
   <div ref="sceneHost" class="texture-scene" role="img" aria-label="The same artwork rendered from 256 and 2048 pixel textures at an identical screen size"></div>
   <div class="texture-divider" aria-hidden="true"></div>
   <section class="texture-label texture-label--left">
     <div class="texture-eyebrow">SMALL SOURCE</div>
     <h2>256 × 256</h2>
     <div class="texture-stats">
-      <span>65K texels</span>
       <strong>≈ 0.33 MiB</strong>
     </div>
   </section>
@@ -5913,23 +5836,16 @@ class: texture-size-slide
     <div class="texture-eyebrow">LARGE SOURCE</div>
     <h2>2048 × 2048</h2>
     <div class="texture-stats">
-      <span>4.2M texels</span>
       <strong>≈ 21.3 MiB</strong>
-      <b>64× pixels</b>
+      <b>64× texels</b>
     </div>
   </section>
-  <div class="texture-crop texture-crop--left">
-    crop spans {{ Math.round(256 / textureZoom) }} source texels
-  </div>
-  <div class="texture-crop texture-crop--right">
-    crop spans {{ Math.round(2048 / textureZoom) }} source texels
-  </div>
 </div>
 
-<label class="texture-zoom-control" for="texture-zoom">
+<label class="texture-zoom-control demo-control" for="texture-zoom">
   <div>
-    <span>INSPECT THE TEXTURE</span>
-    <strong>{{ textureZoom < 1.5 ? 'Same footprint. Very different cost.' : 'Extra detail matters only when the view needs it.' }}</strong>
+    <span>Try zooming in</span>
+    <strong>Same display size.</strong>
   </div>
   <input
     id="texture-zoom"
@@ -5941,6 +5857,8 @@ class: texture-size-slide
   />
   <output>{{ textureZoom.toFixed(1) }}× zoom</output>
 </label>
+
+<div class="demo-takeaway">Size for the closest useful view. Estimates here assume RGBA8 plus mipmaps.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -6311,7 +6229,8 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- Both panels render the same generated artwork at the same on-screen size.
+- Goal: avoid oversized texture uploads. Show: move Zoom from 1× toward 8× once. Use: enough source detail for the largest useful view. Limit: too small a source loses detail when enlarged.
+- Both panels render the same generated artwork at the same on-screen size. Memory figures are format-based estimates, not profiler measurements or download sizes.
 - The sources are real 256 by 256 and 2048 by 2048 canvas textures: eight times wider means sixty-four times as many texels.
 - An uncompressed RGBA texture costs roughly `width × height × 4` bytes on the GPU; mipmaps add about one third.
 - That is approximately 0.33 MiB versus 21.3 MiB here, even though the normal view looks nearly identical.
@@ -6323,40 +6242,28 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-class: particles-slide
+class: demo-slide particles-slide
 ---
 
-# Three.js Tool: Points and Particles
+# Points: Many Marks, One Object
 
-<div class="particles-claim">
-  Up to 100,000 moving particles. <strong>One geometry. One particle draw call.</strong>
-</div>
+<div class="demo-kind">Stylized illustration</div>
+<div class="demo-lead">Draw up to 100,000 particles without creating a mesh for each one.</div>
 
-<div class="particles-stage">
+<div class="particles-stage demo-stage">
   <aside class="particles-explainer">
     <div class="particles-kicker">GPU PARTICLE SYSTEM</div>
     <h2>No mesh per particle</h2>
-    <div class="particles-code">
+    <div class="particles-code demo-code">
       <span><b>const</b> cloud = <b>new</b> THREE.Points(</span>
       <span class="particles-code-indent">geometry, particleMaterial</span>
       <span>)</span>
       <span>geometry.setDrawRange(<i>0</i>, count)</span>
     </div>
-    <div class="particles-fact">
-      <strong>{{ particleCount.toLocaleString() }}</strong>
-      <span>active vertices</span>
-    </div>
-    <div class="particles-fact">
-      <strong>1</strong>
-      <span>particle draw call</span>
-    </div>
-    <div class="particles-fact">
-      <strong>1</strong>
-      <span>time uniform updated by the CPU</span>
-    </div>
+    <p class="demo-caption">One draw for the cloud in this pass. Other scene objects add draws.</p>
   </aside>
   <section
-    class="particles-demo"
+    class="particles-demo demo-dark"
     @pointermove="handlePointerMove"
     @pointerleave="resetPointer"
   >
@@ -6366,12 +6273,7 @@ class: particles-slide
         <span>STYLIZED ACCRETION FLOW</span>
         Companion star → stream → black hole
       </div>
-      <div class="particles-demo-badges">
-        <span>{{ particleCount.toLocaleString() }} points</span>
-        <strong>1 particle draw</strong>
-      </div>
     </div>
-    <div class="particles-pointer-hint">Move the pointer to tilt the system</div>
     <label class="particles-control" for="particle-count">
       <span>1K</span>
       <input
@@ -6387,6 +6289,8 @@ class: particles-slide
     </label>
   </section>
 </div>
+
+<div class="demo-takeaway">Try 50K → 100K particles. Useful for small marks; transparency can still be expensive.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -6903,14 +6807,15 @@ onSlideLeave(disposeScene)
 </style>
 
 <!--
-- This is a stylized accretion flow, not an N-body gravity simulation.
+- Goal: render many small marks with little per-particle setup. Show: move the particle count from 50K to 100K once. Use: small points and procedural effects. Limit: transparency/overdraw and hardware point-size limits still matter; this is not a benchmark.
+- This is a stylized accretion flow, not an N-body gravity simulation or a visualization of measured orbital positions.
 - Particles originate throughout the companion star and follow one continuous inward spiral, eliminating a separate stream-to-disk join.
 - Their source offsets collapse gradually into the stream; slightly different orbital rates then shear it into a disk.
 - Angular speed increases toward the black hole, producing tighter and faster inner orbits.
 - The CPU allocates the maximum-size attributes once; particle motion then needs only a `uTime` uniform update each frame.
 - The vertex shader computes every particle's current position from its phase and time.
 - The count slider calls `geometry.setDrawRange()`; it does not rebuild or re-upload the buffers.
-- One `THREE.Points` object and one material render the entire particle system in one draw call.
+- The particle cloud uses one THREE.Points object and one material, making one particle draw per visible pass here. The star, glow sprite, black-hole sphere, and ring add separate scene draws. The entire scene is not one draw call.
 - The fragment shader turns each square point primitive into a soft circle and uses additive blending for the glow.
 - Alpha blending and overdraw can become the bottleneck even when draw calls stay low.
 - Use instanced quads instead when particles need larger images, independent rotation, or more predictable sizing.
@@ -6918,20 +6823,19 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-class: gpu-pick-slide
+class: demo-slide gpu-pick-slide
 ---
 
-# Three.js Tool: GPU Picking
+# GPU Picking: Find the Record
 
-<div class="gpu-pick-claim">
-  Render object IDs offscreen. <strong>One cursor pixel identifies the datum.</strong>
-</div>
+<div class="demo-kind">Synthetic example</div>
+<div class="demo-lead">Draw IDs offscreen. Read the cursor pixel to find its record.</div>
 
-<div class="gpu-pick-shell">
+<div class="gpu-pick-shell demo-stage">
   <aside class="gpu-pick-explainer">
-    <div class="gpu-pick-kicker">GPU X-RAY</div>
-    <h2>Render IDs,<br>not colors</h2>
-    <div class="gpu-pick-code" aria-label="Three.js GPU picking code">
+    <div class="gpu-pick-kicker">ID → record → details</div>
+    <h2>Encode IDs as colors</h2>
+    <div class="gpu-pick-code demo-code" aria-label="Three.js GPU picking code">
       <span>mesh.material = <b>idMaterial</b></span>
       <span>renderer.setRenderTarget(ids)</span>
       <span>renderer.render(scene, camera)</span>
@@ -6946,14 +6850,10 @@ class: gpu-pick-slide
       <strong>{{ gpuPickSelectedId ? `ID ${gpuPickSelectedId.toLocaleString()}` : 'background' }}</strong>
       <small>{{ gpuPickRecordLabel }}</small>
     </div>
-    <div class="gpu-pick-fact">
-      <strong>20,000</strong>
-      <span>instanced data marks</span>
-    </div>
   </aside>
   <section
     ref="gpuPickStageRef"
-    class="gpu-pick-demo"
+    class="gpu-pick-demo demo-dark"
     :class="{ 'is-locked': gpuPickLocked }"
     tabindex="0"
     aria-label="Interactive GPU picking demo. Move the pointer or use arrow keys to scan the data terrain. Click, Enter, or Space to lock a selection."
@@ -6967,11 +6867,7 @@ class: gpu-pick-slide
     <div class="gpu-pick-heading">
       <div>
         <span>VISIBLE PASS</span>
-        3D data terrain
-      </div>
-      <div class="gpu-pick-badges">
-        <span>20,000 marks</span>
-        <strong>RGB → ID</strong>
+        20,000 synthetic marks
       </div>
     </div>
     <div
@@ -6985,10 +6881,12 @@ class: gpu-pick-slide
       <span>ID BUFFER</span>
     </div>
     <div class="gpu-pick-hint">
-      {{ gpuPickLocked ? 'LOCKED · click to resume scanning' : 'MOVE TO SCAN · click to lock' }}
+      {{ gpuPickLocked ? 'Selection locked · click or Enter to resume' : 'Move or use arrows · click or Enter to select' }}
     </div>
   </section>
 </div>
+
+<div class="demo-takeaway">Try selecting one mark. Use GPU picking for large or custom scenes; readback can stall.</div>
 
 <script setup>
 import * as THREE from 'three'
@@ -7713,11 +7611,12 @@ onSlideLeave(disposeGpuPickScene)
 </style>
 
 <!--
-- The same `InstancedMesh` is rendered with its visible material, then on demand with an ID material into the offscreen target.
+- Goal: connect a rendered mark back to a record. Show: move to one mark and click to lock it; point out the record details. Keyboard arrows and Enter provide the alternative. Use: large/custom GPU mark sets. Limit: readback can stall; Raycaster is simpler for small ordinary scenes.
+- The same InstancedMesh is rendered with its visible material, then on demand with an ID material into the offscreen target.
 - The ID material outputs a unique 24-bit RGB value for each instance, with lighting and tone mapping disabled.
 - A depth buffer ensures the frontmost visible mark supplies the cursor pixel.
 - The lens magnifies a real 25 × 25 offscreen render so the audience can see the otherwise-hidden ID pass.
-- Only the center pixel selects the datum; production code can reduce the render target and readback to 1 × 1.
+- Only the center pixel selects the record; an application that does not show this magnified lens can reduce the target and readback to 1 × 1.
 - `camera.setViewOffset()` renders only the tiny region surrounding the cursor instead of redrawing a full-size ID buffer.
 - `readRenderTargetPixels()` is synchronous and can stall the pipeline, so pointer events are coalesced to one read per animation frame.
 - For a small number of ordinary meshes, `Raycaster` is simpler; GPU picking earns its complexity at high counts or with custom GPU geometry.
@@ -7727,18 +7626,26 @@ onSlideLeave(disposeGpuPickScene)
 
 ---
 
-# Three.js Tool: Imported 3D Assets
+# Bring In a 3D Asset
 
-Load objects and materials created in a dedicated 3D program.
+<div class="svg-demo-panel pending-panel">Load geometry and materials made in a 3D editor.</div>
+
+<!--
+- Speaker decision pending: keep this topic in the main talk or move it to the appendix. The asset lesson is not implemented in this pass.
+-->
 
 ---
 
 # Stay in Touch
 
-Check out my website and social accounts.
+<div class="svg-demo-panel pending-panel">Website and contact links</div>
+
+<!-- Speaker input pending: add approved contact links before presenting. -->
 
 ---
 
-# Extra Resources
+# Keep Exploring
 
-Here are more resources for exploring D3, Three.js, and performant visualization.
+<div class="svg-demo-panel pending-panel">D3, Three.js, and browser performance resources</div>
+
+<!-- TODO 7: select and verify the final resource links; no links are invented here. -->
