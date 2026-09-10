@@ -25,3 +25,8 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Release $TAG_NAME" \
             --generate-notes
+
+      - name: Trigger site rebuild
+        env:
+          GH_TOKEN: ${{ secrets.SITE_REBUILD_TOKEN }}
+        run: gh workflow run static.yml --repo jbeers/jbeers.github.io --ref main
