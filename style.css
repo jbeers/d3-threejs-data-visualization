@@ -72,10 +72,6 @@
 .renderer-choice { margin-top: 1rem; }
 .three-scene-kind { position: absolute; right: 3.5rem; bottom: 1.5rem; color: #cbd5e1; font-size: 0.8rem; }
 .pending-panel { color: var(--talk-muted); }
-.slidev-layout.target-briefing table { color: #e2e8f0; }
-.slidev-layout.target-briefing tbody tr:first-child { color: #fde68a; }
-.slidev-layout.target-briefing th { font-size: 0.9rem; }
-.slidev-layout.target-briefing td { padding: 0.6rem 0.75rem; }
 
 /* One teaching frame: purpose, demonstration, then a use and a limit. */
 .slidev-layout.demo-slide {

@@ -18,7 +18,7 @@ class: talk-title
 
 <div>
 
-What if the Rebels had given Luke Skywalker a Markdown table instead of a clear 3D view?
+What if the Rebels had given Luke Skywalker a CSV file instead of a clear 3D view?
 
 </div>
 
@@ -40,65 +40,40 @@ class: target-briefing
 
 The rebellion is doomed.
 
-| Target       | Team | Pilot    |    Distance | Size   | Notes                                       |
-| ------------ | ---- | -------- | ----------: | ------ | ------------------------------------------- |
-| Exhaust Port | Red  | Luke     |       0.5 m | 2 m    | Primary target, about the size of a womp rat |
-| TIE Fighters | Red  | Biggs    |    Variable | Small  | Keep off Luke                               |
-| Turbolasers  | Gold | Dutch    |        2 km | Large  | Shoot back                                  |
-| Trench Walls | All  | Everyone |         0 m | Huge   | NOT A TARGET                                |
-| Darth Vader  | Any  | Anyone   |    Variable | Human  | Avoid                                       |
-| Death Star   | All  | Everyone | Right there | 120 km | Destroy                                     |
+<div class="relative">
+
+```csv
+Target,Team,Pilot,Distance,Size,Notes
+Exhaust Port,Red,Luke,0.5 m,2 m,"Primary target, about the size of a womp rat"
+TIE Fighters,Red,Biggs,Variable,Small,Keep off Luke
+Turbolasers,Gold,Dutch,2 km,Large,Shoot back
+Trench Walls,All,Everyone,0 m,Huge,NOT A TARGET
+Darth Vader,Any,Anyone,Variable,Human,Avoid
+Death Star,All,Everyone,Right there,120 km,Destroy
+```
+
+<figure class="absolute -right-3 -bottom-10 m-0 w-24">
+  <img src="/images/excel-file-icon.png" alt="Excel file icon" />
+</figure>
+
+</div>
 
 <style>
 .target-briefing {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-}
-
-.target-briefing h1 {
-  color: #f8fafc;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.25rem;
+  --slidev-code-font-size: 18px;
+  --slidev-code-line-height: 30px;
+  --slidev-code-radius: 0.8rem;
+  background: var(--talk-paper);
+  color: var(--talk-ink);
 }
 
 .target-briefing p {
-  color: #cbd5e1;
+  color: var(--talk-muted);
   margin-bottom: 2rem;
 }
 
-.target-briefing table {
-  background: #1e293b;
-  border-radius: 1rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
-  font-size: 1rem;
-  overflow: hidden;
-  width: 100%;
-  color: #e2e8f0;
-}
-
-.target-briefing thead {
-  background: #334155;
-}
-
-.target-briefing th {
-  color: #fde68a;
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
-  padding: 0.85rem;
-  text-transform: uppercase;
-}
-
-.target-briefing td {
-  border-bottom: 1px solid #334155;
-  padding: 0.7rem 0.85rem;
-}
-
-.target-briefing tbody tr:nth-child(even) {
-  background: rgba(148, 163, 184, 0.08);
-}
-
-.target-briefing tbody tr:first-child {
-  color: #fde68a;
-  font-weight: 700;
+.target-briefing .slidev-code {
+  border: 1px solid var(--talk-border);
 }
 </style>
 
@@ -287,7 +262,7 @@ class: family-slide
   </figure>
   <div class="family-copy">
     <p>This was especially meaningful to me.</p>
-    <p>My grandpa worked on the <strong>moon mission</strong>, and my uncle created <strong>3D mission animations at NASA</strong>.</p>
+    <p>My grandpa worked was an engineer who sub contracted for the <strong>Apollo moon mission</strong>, and my uncle created <strong>3D mission animations at NASA</strong>.</p>
     <p>I wanted to get this right.</p>
   </div>
 </div>
