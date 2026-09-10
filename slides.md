@@ -331,7 +331,7 @@ The visualization was...
   <div v-click="1" class="review-janky">JANKY!</div>
   <SlidevVideo
     v-click="1"
-    src="/videos/before-demo.webm"
+    :src="resolveAssetUrl('/videos/before-demo.webm')"
     controls
     muted
     playsinline
@@ -341,11 +341,15 @@ The visualization was...
     class="review-video"
     aria-label="Original SVG celestial map interaction recording"
   >
-    <a href="/videos/before-demo.webm">Watch the original SVG demo.</a>
+    <a :href="resolveAssetUrl('/videos/before-demo.webm')">Watch the original SVG demo.</a>
   </SlidevVideo>
 </div>
 
 <div v-click="2" class="review-final">What would my ancestors think?</div>
+
+<script setup>
+import { resolveAssetUrl } from '@slidev/client'
+</script>
 
 <style>
 .review-slide {
@@ -438,7 +442,7 @@ import * as THREE from 'three'
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
 import { nextTick, ref, watch } from 'vue'
-import { onSlideEnter, onSlideLeave, useSlideContext } from '@slidev/client'
+import { onSlideEnter, onSlideLeave, resolveAssetUrl, useSlideContext } from '@slidev/client'
 
 const sceneHost = ref(null)
 const { $clicks: clicks } = useSlideContext()
@@ -498,7 +502,7 @@ function animate() {
 
 function createLabels() {
   const currentScene = scene
-  new FontLoader().load('/fonts/helvetiker_regular.typeface.json', (font) => {
+  new FontLoader().load(resolveAssetUrl('/fonts/helvetiker_regular.typeface.json'), (font) => {
     if (scene !== currentScene || !renderer) return
 
     labelMaterial = new THREE.MeshStandardMaterial({
@@ -730,7 +734,7 @@ class: case-study-demo-slide
 # After: The Three.js Rewrite
 
 <SlidevVideo
-  src="/videos/after-demo.webm"
+  :src="resolveAssetUrl('/videos/after-demo.webm')"
   controls
   muted
   playsinline
@@ -740,12 +744,16 @@ class: case-study-demo-slide
   class="max-w-full max-h-88 self-center rounded-xl object-contain bg-slate-950"
   aria-label="Three.js celestial map: smoother interaction with animated Earth, Moon, satellite, and event markers"
 >
-  <a href="/videos/after-demo.webm">Watch the Three.js demo.</a>
+  <a :href="resolveAssetUrl('/videos/after-demo.webm')">Watch the Three.js demo.</a>
 </SlidevVideo>
 
 <div class="mt-3 text-center text-base text-slate-600">
 Recorded Space view · smoother interaction and richer graphics
 </div>
+
+<script setup>
+import { resolveAssetUrl } from '@slidev/client'
+</script>
 
 <style>
 .slidev-layout.case-study-demo-slide {
@@ -1315,7 +1323,7 @@ class: demo-slide rendering-demo
 import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { computed, nextTick, ref, watch } from 'vue'
-import { onSlideEnter, onSlideLeave } from '@slidev/client'
+import { onSlideEnter, onSlideLeave, resolveAssetUrl } from '@slidev/client'
 
 const sceneHost = ref(null)
 const view = ref('rendered')
@@ -1497,7 +1505,7 @@ function updateGeometry() {
   const request = ++loadRequest
   if (shape.value === 'suzanne') {
     disposeModel()
-    new OBJLoader().load('/suzanne.obj', (object) => {
+    new OBJLoader().load(resolveAssetUrl('/suzanne.obj'), (object) => {
       if (request !== loadRequest || shape.value !== 'suzanne' || !scene) {
         disposeModel(object)
         return

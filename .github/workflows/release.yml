@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -15,13 +19,31 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - run: npm ci
+      - run: node snippets/d3-handoff.mjs
+      - run: npm run build:release
+
+      - name: Package static site
+        # The website's downloader extracts the single top-level dist/ directory.
+        run: |
+          test -s dist/index.html
+          zip -qr "$RUNNER_TEMP/site.zip" dist
 
       - name: Create published GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: v0.0.${{ github.run_number }}
         run: |
-          gh release create "$TAG_NAME" \
+          gh release create "$TAG_NAME" "$RUNNER_TEMP/site.zip" \
             --target "$GITHUB_SHA" \
             --title "Release $TAG_NAME" \
             --generate-notes

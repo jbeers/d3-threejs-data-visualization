@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "slidev",
     "build": "slidev build",
+    "build:release": "slidev build --base ./ --router-mode hash",
     "export": "slidev export"
   },
   "devDependencies": {
