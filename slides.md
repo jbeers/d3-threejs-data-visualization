@@ -12,6 +12,26 @@ class: talk-title
 
 ---
 
+# Explore the Talk Online
+
+<div class="flex items-center justify-center gap-12 mt-10">
+  <img
+    src="/images/d3-threejs-data-viz-qr.svg"
+    class="w-80 rounded-xl shadow-lg"
+    alt="QR code linking to the talk online"
+  />
+  <div class="max-w-lg text-xl">
+    <p>Scan to explore the talk online.</p>
+    <a href="https://jbeers.github.io/talks/d3-threejs-data-viz">
+      jbeers.github.io/talks/d3-threejs-data-viz
+    </a>
+  </div>
+</div>
+
+---
+class: deathstar-slide
+---
+
 # A Matter of Life and Death
 
 <div class="grid grid-cols-2 gap-8 items-center">
@@ -22,15 +42,26 @@ What if the Rebels had given Luke Skywalker a CSV file instead of a clear 3D vie
 
 </div>
 
-<div class="aspect-square overflow-hidden rounded-xl shadow-lg">
-  <video src="/videos/Death%20Star%20Briefing%20-%20compressed.webm" autoplay="true" muted="true" loop="true" class="w-full h-full object-cover object-center" />
-</div>
+<DeathStarBriefing />
 
 </div>
 
-<div class="mt-6 text-sm opacity-70">
-Video by <a href="https://www.youtube.com/@axeman3d/videos">Axeman3D</a>
+<div class="mt-4 text-sm text-slate-600">
+Three.js reconstruction · briefing reference: <a href="https://www.youtube.com/watch?v=f8CW2xTT8zo">Axeman3D</a>
 </div>
+
+<style>
+.slidev-layout.deathstar-slide {
+  justify-content: flex-start;
+  padding-top: 6.5rem;
+}
+</style>
+
+<!--
+- Reconstructs the supplied 24-second “Death Star Briefing - improved” clip by Axeman3D: grow the station into view, rotate horizontally, roll over the pole, select a surface square, and magnify two nested grids. The supplied clip ends before the trench fly-through; no buildings, cockpit HUD, or exhaust-port shot are added.
+- The equator-mounted dish, latitude bands, polar meridians, and monochrome lines follow the briefing plans, not the final movie prop's off-equator dish. Geometry restores lines obscured by the reference's artifacts; camera timings are sampled approximations, not a frame-exact restoration.
+- Autoplays while this slide is active, jumping back to the beginning every 24 seconds. There are no playback controls. Reduced motion shows the full-size station without animation. Print and unavailable WebGL use a static schematic.
+-->
 
 ---
 class: target-briefing
@@ -131,6 +162,22 @@ My employer, Ortus Solutions, was contracted to help USRA build a proof-of-conce
 </style>
 
 ---
+
+# Multi-Messenger: Portal to the Universe
+
+<div class="project-overview">
+  <p>Events from several observatories, together on one sky map.<br>D3 did the calculations; SVG drew the map.</p>
+  <figure>
+    <img src="/images/multi-messenger-screenshot.png" class="project-screenshot" alt="Observatory events plotted on the Multi-Messenger sky map" />
+  </figure>
+</div>
+
+<!--
+- The supplied screenshot is cropped to the map: 1556 × 844 at (350, 148) in multi-messenger-screenshot.png. No plotted content is removed; the original is retained. This is not a performance measurement.
+- Original project description: “The Portal to the Universe is a demonstration that covers approximately one year of data from April 1, 2019 through March 27, 2020 for the Fermi Gamma-ray Burst Monitor, the LIGO and Virgo Gravitational-wave observatories, and the Zwicky Transient Facility.”
+-->
+
+---
 class: team-slide
 ---
 
@@ -219,22 +266,6 @@ class: team-slide
   font-size: 0.9rem;
 }
 </style>
-
----
-
-# Multi-Messenger: Portal to the Universe
-
-<div class="project-overview">
-  <p>Events from several observatories, together on one sky map.<br>D3 did the calculations; SVG drew the map.</p>
-  <figure>
-    <img src="/images/multi-messenger-map.png" class="project-screenshot" alt="Observatory events plotted on the Multi-Messenger sky map" />
-  </figure>
-</div>
-
-<!--
-- The supplied screenshot is cropped to the map: 1556 × 844 at (350, 148) in multi-messenger-screenshot.png. No plotted content is removed; the original is retained. This is not a performance measurement.
-- Original project description: “The Portal to the Universe is a demonstration that covers approximately one year of data from April 1, 2019 through March 27, 2020 for the Fermi Gamma-ray Burst Monitor, the LIGO and Virgo Gravitational-wave observatories, and the Zwicky Transient Facility.”
--->
 
 ---
 
@@ -332,16 +363,24 @@ class: family-slide
 class: review-slide
 ---
 
-# Before: The SVG Map
+# So I Decided to Review the Visualization
 
-The visualization was...
+I was dismayed...
 
 <div class="review-reveal">
-  <div v-click="1" class="review-janky">JANKY!</div>
+  <div>
+    <div v-click="1">
+      <li>The controls weren't smooth</li>
+      <li>Dropped frames</li>
+      <li>Didn't feel responsive</li>
+    </div>
+    <div v-click="2" class="review-janky">JANKY!</div>
+  </div>
   <SlidevVideo
     v-click="1"
     :src="resolveAssetUrl('/videos/before-demo.webm')"
     controls
+    autoplay
     muted
     playsinline
     preload="metadata"
@@ -354,7 +393,7 @@ The visualization was...
   </SlidevVideo>
 </div>
 
-<div v-click="2" class="review-final">What would my ancestors think?</div>
+<div v-click="3" class="review-final">What would my ancestors think?</div>
 
 <script setup>
 import { resolveAssetUrl } from '@slidev/client'
@@ -399,28 +438,10 @@ import { resolveAssetUrl } from '@slidev/client'
 .review-final {
   font-size: 1.5rem;
   font-style: italic;
-  margin-top: 1rem;
+  margin-top: 2rem;
   text-align: center;
 }
 </style>
-
----
-
-# What Needed to Improve
-
-I wanted people to explore the data without fighting the map.
-
-- Smoother dragging
-- More consistent updates
-- Controls that stay responsive
-
----
-
-# How Could I Fix This?
-
-- What could accurately render the data?
-- What could improve performance and still look nice?
-- What could give us flexibility to improve in the future?
 
 ---
 class: three-scene-slide
@@ -428,8 +449,6 @@ clicks: 3
 ---
 
 # Enter Three.js
-
-<div class="three-scene-kind">Illustration · not a benchmark</div>
 
 <div class="three-scene-stage">
   <div
@@ -669,7 +688,7 @@ onSlideLeave(disposeScene)
 
 # What Is Three.js?
 
-Three.js gives us a friendlier way to work with WebGL: shapes, materials, cameras, and drawing.
+Cross-browser JavaScript library that makes it easier to work with WebGPU.
 
 JavaScript still prepares the work. The GPU renders it.
 
@@ -683,7 +702,7 @@ class: handoff-slide
 
 # Will Three.js Work with D3?
 
-<div class="mb-5 text-xl">Keep D3’s calculations. Replace the SVG drawing.</div>
+<div class="mb-5 text-xl">YES! Keep D3’s calculations. Replace the SVG drawing.</div>
 
 <div class="grid grid-cols-3 gap-4">
   <section class="svg-demo-panel">
@@ -708,7 +727,7 @@ Records → D3 calculations → numeric attributes → Three.js drawing
 </div>
 
 <div class="mt-5 text-lg">
-A WebGL renderer can draw a <strong>flat 2D map</strong>. 3D is an option, not a requirement.
+A WebGL renderer can render both 2D and 3D. The sky is the limit!
 </div>
 
 <!--
@@ -788,12 +807,12 @@ class: profile-metrics-slide
 During dragging · interactive Chrome DevTools captures
 </div>
 
-| Metric | Original SVG | SVG refactor | Three.js rewrite |
-| --- | ---: | ---: | ---: |
-| Drawn frames / second | 10.9 | **35.9** | **74.2** |
-| Average main-thread map callback | 30.9 ms | **22.6 ms** | **4.9 ms** |
-| 95th-percentile map callback | 39.2 ms | **31.6 ms** | **8.8 ms** |
-| Main-thread busy time | 46.9% | 92.2% | **45.8%** |
+| Metric                           | Original SVG | SVG refactor | Three.js rewrite |
+| -------------------------------- | -----------: | -----------: | ---------------: |
+| Drawn frames / second            |         10.9 |     **35.9** |         **74.2** |
+| Average main-thread map callback |      30.9 ms |  **22.6 ms** |       **4.9 ms** |
+| 95th-percentile map callback     |      39.2 ms |  **31.6 ms** |       **8.8 ms** |
+| Main-thread busy time            |        46.9% |        92.2% |        **45.8%** |
 
 <div class="text-xl font-bold text-blue-800">
 Refactoring helped. The Three.js rewrite went further.
@@ -801,11 +820,6 @@ Refactoring helped. The Three.js rewrite went further.
 
 <div class="mt-3 text-base text-slate-700">
 Three.js also adds animated Earth, Moon, satellite, and 3D markers.
-</div>
-
-<div class="mt-3 text-sm text-slate-600">
-Observed case study, not a controlled benchmark; interactions differ.<br>
-Callback time is not complete GPU/display frame time.
 </div>
 
 <style>
@@ -850,6 +864,24 @@ Callback time is not complete GPU/display frame time.
 # A Result I Could Feel Good About
 
 The map was smoother, the graphics were richer, and I felt more confident in what we had built.
+
+---
+
+# Explore the Talk Online
+
+<div class="flex items-center justify-center gap-12 mt-10">
+  <img
+    src="/images/d3-threejs-data-viz-qr.svg"
+    class="w-80 rounded-xl shadow-lg"
+    alt="QR code linking to the talk online"
+  />
+  <div class="max-w-lg text-xl">
+    <p>Scan to explore the talk online.</p>
+    <a href="https://jbeers.github.io/talks/d3-threejs-data-viz">
+      jbeers.github.io/talks/d3-threejs-data-viz
+    </a>
+  </div>
+</div>
 
 ---
 
