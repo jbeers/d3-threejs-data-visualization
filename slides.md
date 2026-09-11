@@ -891,12 +891,11 @@ The visualization was much better on EVERY metric.
 
 ---
 
-# Let’s Build on That
+# Let’s See Three.js In Practice
 
-- Keep D3’s calculations; choose how to draw
-- Reuse work and measure the result
-- Make interaction and data accessible
-- Add motion and detail where they help
+- Development Considersations
+- Three.js features
+- Animation/presentation tips
 
 ---
 class: demo-slide rendering-demo
@@ -1666,9 +1665,7 @@ class: handoff-slide d3-handoff-slide
 
 # One Event, from D3 to Three.js
 
-<div class="mb-1 text-base text-slate-600">
-Adapted from the application · illustrative record · fixed 900 × 600 Graphic view
-</div>
+
 <div class="mb-2 text-base">
 <code>event = { event_id: 'demo', ra: 236.54, dec: -4.217 }</code> · angles in degrees
 </div>
@@ -7650,35 +7647,86 @@ onSlideLeave(disposeGpuPickScene)
 -->
 
 ---
+class: stay-in-touch-slide
+---
 
 # Stay in Touch
 
-I would love to keep in touch!
-
-- [jbeers.github.io](https://jbeers.github.io)
-- [x.com/jtbeers](https://x.com/jtbeers)
-- [linkedin.com/in/jacob-beers-dev](https://www.linkedin.com/in/jacob-beers-dev/)
+<div class="stay-in-touch-content">
+  <div class="stay-in-touch-copy">
+    <p>I would love to keep in touch!</p>
+    <ul>
+      <li><a href="https://jbeers.github.io">jbeers.github.io</a></li>
+      <li><a href="https://x.com/jtbeers">x.com/jtbeers</a></li>
+      <li><a href="https://linkedin.com/in/jacob-beers-dev/">linkedin.com/in/jacob-beers-dev</a></li>
+    </ul>
+  </div>
+  <img class="stay-in-touch-image" src="/images/pic.png" alt="Illustration of Jacob Beers" />
+</div>
 
 <!-- Speaker input pending: add approved contact links before presenting. -->
 
 ---
+class: explore-slide
+---
 
 # Keep Exploring
 
+<div class="explore-columns">
+  <section class="explore-column">
+    <h2>Learning Resources</h2>
+    <div class="explore-card-grid explore-card-grid--2x2">
+      <a class="explore-card" href="https://threejs.org/">
+        <strong>Three.js</strong>
+        <span>Official site and documentation</span>
+        <small>threejs.org</small>
+      </a>
+      <a class="explore-card" href="https://threejs-journey.com/">
+        <strong>Three.js Journey</strong>
+        <span>Haven't used it; looks awesome</span>
+        <small>Paid · threejs-journey.com</small>
+      </a>
+      <a class="explore-card" href="https://discoverthreejs.com/">
+        <strong>Discover Three.js</strong>
+        <span>Haven't used it; also looks awesome</span>
+        <small>Free · discoverthreejs.com</small>
+      </a>
+      <a class="explore-card" href="https://threejsresources.com/">
+        <strong>Three.js Resources</strong>
+        <small>threejsresources.com</small>
+      </a>
+    </div>
+  </section>
 
-## Learning Resources
-- https://threejs.org/ - official site and documentation
-- https://threejs-journey.com/ (haven't used, looks awesome, paid)
-- https://discoverthreejs.com/ (haven't used, also looks awesome, free)
-- https://threejsresources.com/
+  <section class="explore-column">
+    <h2>Tools / Assets</h2>
+    <div class="explore-card-grid">
+      <a class="explore-card" href="https://github.com/img2threejs/img2threejs">
+        <strong>img2threejs</strong>
+        <span>Agent skill</span>
+        <small>github.com/img2threejs/img2threejs</small>
+      </a>
+      <a class="explore-card" href="https://kenney.nl/">
+        <strong>Kenney</strong>
+        <span>Free game-ready assets</span>
+        <small>kenney.nl</small>
+      </a>
+    </div>
+  </section>
 
-## Tools/Assets
-- https://github.com/img2threejs/img2threejs - agent skill to turn images into 3d models
-- https://kenney.nl/ - free game ready assets
+  <section class="explore-column">
+    <h2>Cool Demos</h2>
+    <div class="explore-card-grid">
+      <a class="explore-card" href="https://x.com/DilumSanjaya">
+        <strong>@DilumSanjaya</strong>
+        <small>x.com/DilumSanjaya</small>
+      </a>
+      <a class="explore-card" href="https://x.com/techartist_">
+        <strong>@techartist_</strong>
+        <small>x.com/techartist_</small>
+      </a>
+    </div>
+  </section>
+</div>
 
-## Cool Demos
-- https://x.com/DilumSanjaya
-- https://x.com/techartist_
-
-
-<!-- TODO 7: select and verify the final resource links; no links are invented here. -->
+<!-- Images pending: add one supplied image to each exploration column. -->
