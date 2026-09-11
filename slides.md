@@ -685,16 +685,18 @@ onSlideLeave(disposeScene)
 -->
 
 ---
+class: handoff-slide
+---
 
 # What Is Three.js?
 
 Cross-browser JavaScript library that makes it easier to work with WebGPU.
 
-JavaScript still prepares the work. The GPU renders it.
+JavaScript manages your data and calls the Three.js API. Three.js works with the WebGPU APIs provided by the browser to send the data to your GPU.
 
-<div class="svg-demo-panel renderer-choice">
-<strong>Choose what fits your task.</strong> SVG keeps marks in the DOM. Canvas 2D offers direct 2D drawing. Three.js adds GPU-oriented rendering tools. D3 can work with all three.
-</div>
+Made by mrdoob on March 23 in the year... <span v-click="1">2010!</span>
+
+<img v-click="1" src="/images/threejs-first-commits.png" class="mx-auto mt-auto h-64 max-w-full object-contain" alt="Three.js commit history showing mrdoob’s first commit on March 23, 2010 and first public version on April 23, 2010" />
 
 ---
 class: handoff-slide
@@ -863,7 +865,11 @@ Three.js also adds animated Earth, Moon, satellite, and 3D markers.
 
 # A Result I Could Feel Good About
 
-The map was smoother, the graphics were richer, and I felt more confident in what we had built.
+The visualization was much better on EVERY metric.
+
+- Higher frame rate
+- Smoother animations
+- Better controls
 
 ---
 
@@ -2923,11 +2929,6 @@ class: handoff-slide practical-guidance-slide
 - References: https://www.w3.org/WAI/tutorials/images/complex/ and https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
 -->
 
----
-
-# Time for Polish
-
-Now that the fundamentals are in place, we can improve the experience.
 
 ---
 class: demo-slide entry-exit-slide
@@ -7650,19 +7651,13 @@ onSlideLeave(disposeGpuPickScene)
 
 ---
 
-# Bring In a 3D Asset
-
-<div class="svg-demo-panel pending-panel">Load geometry and materials made in a 3D editor.</div>
-
-<!--
-- Speaker decision pending: keep this topic in the main talk or move it to the appendix. The asset lesson is not implemented in this pass.
--->
-
----
-
 # Stay in Touch
 
-<div class="svg-demo-panel pending-panel">Website and contact links</div>
+I would love to keep in touch!
+
+- [jbeers.github.io](https://jbeers.github.io)
+- [x.com/jtbeers](https://x.com/jtbeers)
+- [linkedin.com/in/jacob-beers-dev](https://www.linkedin.com/in/jacob-beers-dev/)
 
 <!-- Speaker input pending: add approved contact links before presenting. -->
 
@@ -7670,6 +7665,20 @@ onSlideLeave(disposeGpuPickScene)
 
 # Keep Exploring
 
-<div class="svg-demo-panel pending-panel">D3, Three.js, and browser performance resources</div>
+
+## Learning Resources
+- https://threejs.org/ - official site and documentation
+- https://threejs-journey.com/ (haven't used, looks awesome, paid)
+- https://discoverthreejs.com/ (haven't used, also looks awesome, free)
+- https://threejsresources.com/
+
+## Tools/Assets
+- https://github.com/img2threejs/img2threejs - agent skill to turn images into 3d models
+- https://kenney.nl/ - free game ready assets
+
+## Cool Demos
+- https://x.com/DilumSanjaya
+- https://x.com/techartist_
+
 
 <!-- TODO 7: select and verify the final resource links; no links are invented here. -->

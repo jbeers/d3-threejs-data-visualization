@@ -69,7 +69,6 @@
 .project-overview p { font-size: 1.15rem; line-height: 1.4; margin: 0 0 0.8rem; }
 .project-overview figure { margin: 0; }
 .project-screenshot { display: block; max-height: 21.5rem; max-width: 100%; margin: 0 auto; border-radius: 0.8rem; }
-.renderer-choice { margin-top: 1rem; }
 .three-scene-kind { position: absolute; right: 3.5rem; bottom: 1.5rem; color: #cbd5e1; font-size: 0.8rem; }
 .pending-panel { color: var(--talk-muted); }
 
