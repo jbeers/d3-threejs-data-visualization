@@ -2295,10 +2295,11 @@ class: handoff-slide practical-guidance-slide
 -->
 
 ---
+layout: center
+class: text-center
+---
 
 # D3/Three.js Features
-
-sefsef
 
 ---
 class: demo-slide instancing-slide
@@ -2964,1576 +2965,6 @@ onBeforeUnmount(disposeScene)
 - There are deliberately no edges, dragging, or physics sliders. One planned interaction is enough to demonstrate the handoff.
 -->
 
-
----
-class: demo-slide entry-exit-slide
----
-
-# Entry and Exit Animations
-
-<div class="demo-kind">Presentation</div>
-<div class="demo-lead">Make it clear which records arrived and which ones left.</div>
-
-<div class="entry-exit-layout demo-stage">
-  <div class="entry-exit-code-card">
-    <div class="entry-exit-card-eyebrow">Lifecycle sketch · pseudocode</div>
-    <h2>Keep track of each record</h2>
-    <pre class="entry-exit-code demo-code"><code><span class="entry-exit-code-enter">for each new record:</span>
-  add its mark
-  animate its entry
-<span class="entry-exit-code-exit">for each removed record:</span>
-  animate its exit
-  remove its mark</code></pre>
-  </div>
-  <div class="entry-exit-scene-card">
-    <div class="entry-exit-scene-frame demo-dark">
-      <div ref="sceneHost" class="entry-exit-scene-canvas" role="img" aria-label="Three.js scene showing data records entering and exiting"></div>
-      <div class="entry-exit-scene-count"><strong>{{ recordCount }}</strong> {{ recordCount === 1 ? 'record' : 'records' }}</div>
-      <div class="entry-exit-scene-caption">new records grow in · removed records shrink out</div>
-    </div>
-  </div>
-</div>
-
-<div class="entry-exit-controls demo-control">
-  <label for="entry-exit-count">Try 3 → 5 → 3 records</label>
-  <span class="entry-exit-range-bound">0</span>
-  <input id="entry-exit-count" v-model.number="recordCount" type="range" min="0" max="5" step="1" :aria-label="'Number of records: ' + recordCount" />
-  <span class="entry-exit-range-bound">5</span>
-  <output for="entry-exit-count" aria-live="polite">{{ recordCount }}</output>
-</div>
-
-<div class="demo-takeaway">Use transitions to explain membership. Don’t imply that a changing size is a changing value.</div>
-
-<script setup>
-import * as THREE from 'three'
-import { nextTick, ref, watch } from 'vue'
-import { onSlideEnter, onSlideLeave } from '@slidev/client'
-
-const sceneHost = ref(null)
-const recordCount = ref(3)
-const recordPositions = [
-  new THREE.Vector3(-1.45, -0.05, 0.2),
-  new THREE.Vector3(-0.85, -0.45, -0.3),
-  new THREE.Vector3(-0.28, 0.1, -0.75),
-  new THREE.Vector3(0.35, -0.4, -0.15),
-  new THREE.Vector3(0.92, 0.05, -0.55),
-]
-const recordScales = [1, 0.85, 1.08, 0.92, 0.78]
-const recordColors = [0x38bdf8, 0x818cf8, 0xf472b6, 0xfbbf24, 0x34d399]
-const recordStates = recordPositions.map((position, index) => ({
-  index,
-  mesh: undefined,
-  position,
-  status: 'empty',
-  targetScale: 0,
-  targetY: position.y,
-}))
-
-let renderer
-let scene
-let camera
-let recordGroup
-let geometry
-let materials
-let animationFrame
-let resizeObserver
-let reduceMotion = false
-
-function createSceneView() {
-  const view = new THREE.Scene()
-  view.background = new THREE.Color(0x081426)
-  view.fog = new THREE.Fog(0x081426, 4.5, 9)
-  view.add(new THREE.AmbientLight(0xffffff, 1.25))
-
-  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
-  keyLight.position.set(-3, 4, 6)
-  view.add(keyLight)
-
-  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
-  rimLight.position.set(4, -1, -3)
-  view.add(rimLight)
-  return view
-}
-
-function syncRecords() {
-  if (!recordGroup || !materials) return
-
-  recordStates.forEach((state) => {
-    if (state.index < recordCount.value) {
-      if (!state.mesh) {
-        state.mesh = new THREE.Mesh(geometry, materials[state.index % materials.length])
-        state.mesh.position.copy(state.position).add(new THREE.Vector3(0, -0.65, 0))
-        state.mesh.scale.setScalar(0)
-        recordGroup.add(state.mesh)
-      }
-      state.status = 'active'
-      state.targetScale = recordScales[state.index]
-      state.targetY = state.position.y
-      return
-    }
-
-    if (state.mesh) {
-      state.status = 'exiting'
-      state.targetScale = 0
-      state.targetY = state.position.y - 0.65
-    }
-  })
-}
-
-function resize() {
-  if (!renderer || !camera || !sceneHost.value) return
-
-  const width = sceneHost.value.clientWidth
-  const height = sceneHost.value.clientHeight
-  if (!width || !height) return
-
-  renderer.setSize(width, height, false)
-  camera.aspect = width / height
-  camera.updateProjectionMatrix()
-}
-
-function animate() {
-  if (!renderer || !scene || !camera || !recordGroup) return
-
-  animationFrame = requestAnimationFrame(animate)
-  const easing = reduceMotion ? 1 : 0.12
-  recordStates.forEach((state) => {
-    if (!state.mesh) return
-
-    const mesh = state.mesh
-    mesh.scale.setScalar(mesh.scale.x + (state.targetScale - mesh.scale.x) * easing)
-    mesh.position.y += (state.targetY - mesh.position.y) * easing
-
-    if (state.status === 'exiting' && mesh.scale.x < 0.015) {
-      mesh.removeFromParent()
-      state.mesh = undefined
-      state.status = 'empty'
-    }
-  })
-  renderer.render(scene, camera)
-}
-
-function createScene() {
-  if (renderer || !sceneHost.value) return
-
-  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  scene = createSceneView()
-  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
-  camera.position.set(0, 0.15, 5.4)
-  camera.lookAt(0, -0.28, 0)
-  recordGroup = new THREE.Group()
-  scene.add(recordGroup)
-
-  geometry = new THREE.IcosahedronGeometry(0.34, 2)
-  materials = recordColors.map((color) => new THREE.MeshStandardMaterial({
-    color,
-    metalness: 0.15,
-    roughness: 0.35,
-  }))
-  renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.domElement.setAttribute('aria-hidden', 'true')
-  sceneHost.value.appendChild(renderer.domElement)
-
-  syncRecords()
-  resizeObserver = new ResizeObserver(resize)
-  resizeObserver.observe(sceneHost.value)
-  resize()
-  animate()
-}
-
-function disposeScene() {
-  if (animationFrame) cancelAnimationFrame(animationFrame)
-  resizeObserver?.disconnect()
-  recordStates.forEach((state) => {
-    state.mesh?.removeFromParent()
-    state.mesh = undefined
-    state.status = 'empty'
-  })
-  materials?.forEach((material) => material.dispose())
-  geometry?.dispose()
-  renderer?.dispose()
-  renderer?.domElement.remove()
-
-  renderer = scene = camera = recordGroup = geometry = materials = animationFrame = resizeObserver = undefined
-}
-
-watch(recordCount, syncRecords)
-onSlideEnter(async () => {
-  await nextTick()
-  createScene()
-})
-onSlideLeave(disposeScene)
-</script>
-
-<style>
-.entry-exit-slide {
-  background: #f8fafc;
-  color: #0f172a;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-
-.entry-exit-slide h1 {
-  color: #0f172a;
-}
-
-.entry-exit-claim {
-  color: #334155;
-  font-size: 1.45rem;
-  letter-spacing: 0.01em;
-  margin-top: 4.35rem;
-  text-align: center;
-}
-
-.entry-exit-claim strong:first-child {
-  color: #16a34a;
-}
-
-.entry-exit-claim strong:last-child {
-  color: #ea580c;
-}
-
-.entry-exit-layout {
-  display: grid;
-  flex: 1;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  margin-top: 1rem;
-  min-height: 0;
-  width: 100%;
-}
-
-.entry-exit-code-card,
-.entry-exit-scene-card {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 1rem;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-  min-height: 18rem;
-  padding: 1rem 1.1rem 0.85rem;
-}
-
-.entry-exit-code-card {
-  border-top: 4px solid #64748b;
-  display: flex;
-  flex-direction: column;
-}
-
-.entry-exit-scene-card {
-  border-top: 4px solid #2563eb;
-  display: flex;
-  min-width: 0;
-}
-
-.entry-exit-card-eyebrow,
-.entry-exit-scene-title {
-  color: #64748b;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-}
-
-.entry-exit-code-card h2 {
-  color: #1e293b;
-  font-size: 1.15rem;
-  margin: 0.15rem 0 0;
-}
-
-.entry-exit-code {
-  background: #0f172a;
-  border-radius: 0.7rem;
-  color: #e2e8f0;
-  flex: 1;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.67rem;
-  line-height: 1.45;
-  margin: 0.8rem 0 0;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0.75rem 0.8rem;
-  white-space: pre;
-}
-
-.entry-exit-code-muted {
-  color: #93c5fd;
-}
-
-.entry-exit-code-string {
-  color: #a7f3d0;
-}
-
-.entry-exit-code-enter {
-  color: #86efac;
-}
-
-.entry-exit-code-exit {
-  color: #fdba74;
-}
-
-.entry-exit-scene-frame {
-  background: #081426;
-  border-radius: 0.75rem;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-}
-
-.entry-exit-scene-canvas,
-.entry-exit-scene-canvas canvas {
-  display: block;
-  height: 100%;
-  inset: 0;
-  position: absolute;
-  width: 100%;
-}
-
-.entry-exit-scene-title {
-  color: #cbd5e1;
-  left: 1rem;
-  position: absolute;
-  top: 0.9rem;
-}
-
-.entry-exit-scene-count {
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 0.65rem;
-  color: #cbd5e1;
-  font-size: 0.72rem;
-  padding: 0.45rem 0.6rem;
-  position: absolute;
-  right: 1rem;
-  top: 0.75rem;
-}
-
-.entry-exit-scene-count strong {
-  color: #93c5fd;
-  font-size: 1.2rem;
-  margin-right: 0.2rem;
-}
-
-.entry-exit-scene-caption {
-  bottom: 0.75rem;
-  color: #94a3b8;
-  font-size: 0.68rem;
-  left: 1rem;
-  position: absolute;
-}
-
-.entry-exit-controls {
-  align-items: center;
-  color: #475569;
-  display: flex;
-  gap: 0.55rem;
-  margin: 0.65rem auto 0.1rem;
-  width: min(100%, 35rem);
-}
-
-.entry-exit-controls label {
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.entry-exit-controls input {
-  accent-color: #2563eb;
-  flex: 1;
-  min-width: 0;
-}
-
-.entry-exit-range-bound {
-  color: #94a3b8;
-  font-size: 0.72rem;
-}
-
-.entry-exit-controls output {
-  background: #dbeafe;
-  border-radius: 0.4rem;
-  color: #1d4ed8;
-  font-size: 0.85rem;
-  font-weight: 800;
-  min-width: 1.5rem;
-  padding: 0.25rem 0.4rem;
-  text-align: center;
-}
-</style>
-
-<!--
-- Goal: help people follow membership changes. Show: move Records from 3 to 5, then back to 3. Use: arrivals/removals. Limit: when size or position encodes a measured value, prefer opacity or another cue that does not suggest intermediate measurements.
-- This synthetic scene uses five fixed records, not live case-study data. The visible text is pseudocode, not the implementation; this demo does not call d3.index. Keyed data matching can come from D3, while Three.js owns the marks.
-- Enter and exit are lifecycle ideas here—not DOM/SVG selections.
-- New records start at zero size and transition into their target size.
-- Removed records shrink away first, then are removed from the scene.
-- Start with three visible records. The data count changes only when the presenter changes the slider; there is no automatic cycle.
-- Decorative rotation is removed. Reduced motion on entry makes membership changes immediate.
-- At zero, every mesh exits and is cleaned up.
-- The slider is illustrative: the important idea is the animated lifecycle, not a performance benchmark.
--->
----
-class: demo-slide physical-properties-slide
----
-
-# Tie Data to Observable Properties
-
-<div class="demo-kind">Presentation</div>
-<div class="demo-lead">Keep each record’s position. Change how its value looks.</div>
-
-<div class="physical-layout demo-stage">
-  <section class="physical-data-card">
-    <h2>Five records</h2>
-    <pre class="physical-data-code demo-code"><code><span class="physical-code-keyword">const</span> records = [
-  { <span class="physical-code-key">x</span>: -1.8, <span class="physical-code-key">y</span>:  0.7, <span class="physical-code-data">data</span>: 15 },
-  { <span class="physical-code-key">x</span>: -0.9, <span class="physical-code-key">y</span>: -0.6, <span class="physical-code-data">data</span>: 35 },
-  { <span class="physical-code-key">x</span>:  0.0, <span class="physical-code-key">y</span>:  0.3, <span class="physical-code-data">data</span>: 55 },
-  { <span class="physical-code-key">x</span>:  0.9, <span class="physical-code-key">y</span>: -0.4, <span class="physical-code-data">data</span>: 75 },
-  { <span class="physical-code-key">x</span>:  1.8, <span class="physical-code-key">y</span>:  0.6, <span class="physical-code-data">data</span>: 95 },
-]</code></pre>
-    <div class="physical-position-map"><code>x</code> → position.x <span>·</span> <code>y</code> → position.y</div>
-    <label class="physical-mapping-control" for="physical-mapping">
-      <span>Map <code>data</code> to</span>
-      <select id="physical-mapping" v-model="mapping">
-        <option value="mesh">Mesh shape</option>
-        <option value="color">Color</option>
-        <option value="scale">Scale</option>
-        <option value="rotation">Rotation</option>
-      </select>
-    </label>
-  </section>
-  <section class="physical-scene-card">
-    <div class="physical-scene-frame demo-dark" @pointermove="tiltScene" @pointerleave="resetSceneTilt">
-      <div ref="sceneHost" class="physical-scene-canvas" role="img" :aria-label="'Three.js scene mapping record data to ' + mappingLabels[mapping] + '. Move the pointer over the scene to rotate it.'"></div>
-      <div class="physical-scene-caption">Positions stay fixed in data space</div>
-    </div>
-  </section>
-</div>
-
-<div class="demo-takeaway">Try Scale → Color. Use a clear legend; size, shape, and rotation aren’t interchangeable.</div>
-
-<script setup>
-import * as THREE from 'three'
-import { nextTick, ref, watch } from 'vue'
-import { onSlideEnter, onSlideLeave } from '@slidev/client'
-
-const sceneHost = ref(null)
-const mapping = ref('scale')
-const mappingLabels = {
-  mesh: 'Mesh shape',
-  color: 'Color',
-  scale: 'Scale',
-  rotation: 'Rotation',
-}
-const records = [
-  { x: -1.8, y: 0.7, data: 15 },
-  { x: -0.9, y: -0.6, data: 35 },
-  { x: 0, y: 0.3, data: 55 },
-  { x: 0.9, y: -0.4, data: 75 },
-  { x: 1.8, y: 0.6, data: 95 },
-]
-
-let renderer
-let scene
-let camera
-let plotGroup
-let geometries
-let grid
-let animationFrame
-let resizeObserver
-let targetTiltX = 0
-let targetTiltY = 0
-let reduceMotion = false
-const meshStates = []
-
-function applyMapping() {
-  if (!meshStates.length) return
-
-  meshStates.forEach(({ mesh, record, targetColor, targetRotation }) => {
-    const amount = record.data / 100
-    mesh.geometry = geometries[0]
-    mesh.userData.targetScale = 1
-    targetColor.set(0x38bdf8)
-    targetRotation.set(0.25, 0.35, 0)
-
-    if (mapping.value === 'mesh') mesh.geometry = geometries[Math.min(5, 1 + Math.floor(record.data / 20))]
-    if (mapping.value === 'color') targetColor.setHSL(0.62 - amount * 0.55, 0.82, 0.58)
-    if (mapping.value === 'scale') mesh.userData.targetScale = 0.5 + amount
-    if (mapping.value === 'rotation') targetRotation.set(0.2, amount * Math.PI, amount * Math.PI * 1.5)
-  })
-}
-
-function tiltScene(event) {
-  const bounds = event.currentTarget.getBoundingClientRect()
-  targetTiltX = -((event.clientY - bounds.top) / bounds.height - 0.5) * 0.45
-  targetTiltY = ((event.clientX - bounds.left) / bounds.width - 0.5) * 0.9
-}
-
-function resetSceneTilt() {
-  targetTiltX = 0
-  targetTiltY = 0
-}
-
-function resize() {
-  if (!renderer || !camera || !sceneHost.value) return
-
-  const width = sceneHost.value.clientWidth
-  const height = sceneHost.value.clientHeight
-  if (!width || !height) return
-
-  renderer.setSize(width, height, false)
-  camera.aspect = width / height
-  camera.updateProjectionMatrix()
-}
-
-function animate() {
-  if (!renderer || !scene || !camera) return
-
-  animationFrame = requestAnimationFrame(animate)
-  const easing = reduceMotion ? 1 : 0.08
-  if (plotGroup) {
-    plotGroup.rotation.x = THREE.MathUtils.lerp(plotGroup.rotation.x, targetTiltX, easing)
-    plotGroup.rotation.y = THREE.MathUtils.lerp(plotGroup.rotation.y, targetTiltY, easing)
-  }
-  meshStates.forEach(({ mesh, targetColor, targetRotation }) => {
-    const scale = THREE.MathUtils.lerp(mesh.scale.x, mesh.userData.targetScale, easing)
-    mesh.scale.setScalar(scale)
-    mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, targetRotation.x, easing)
-    mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, targetRotation.y, easing)
-    mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, targetRotation.z, easing)
-    mesh.material.color.lerp(targetColor, easing)
-  })
-  renderer.render(scene, camera)
-}
-
-function createScene() {
-  if (renderer || !sceneHost.value) return
-
-  scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x081426)
-  scene.fog = new THREE.Fog(0x081426, 6, 10)
-  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
-  camera.position.set(0, 0.15, 6.4)
-  camera.lookAt(0, 0, 0)
-  plotGroup = new THREE.Group()
-  scene.add(plotGroup)
-
-  scene.add(new THREE.AmbientLight(0xffffff, 1.25))
-  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
-  keyLight.position.set(-3, 4, 6)
-  scene.add(keyLight)
-  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
-  rimLight.position.set(4, -1, -3)
-  scene.add(rimLight)
-
-  geometries = [
-    new THREE.BoxGeometry(0.65, 0.42, 0.3),
-    new THREE.BoxGeometry(0.55, 0.55, 0.55),
-    new THREE.TetrahedronGeometry(0.42),
-    new THREE.OctahedronGeometry(0.42),
-    new THREE.TorusGeometry(0.32, 0.12, 12, 28),
-    new THREE.IcosahedronGeometry(0.4, 1),
-  ]
-  records.forEach((record) => {
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x38bdf8,
-      metalness: 0.15,
-      roughness: 0.35,
-    })
-    const mesh = new THREE.Mesh(geometries[0], material)
-    mesh.position.set(record.x, record.y, 0)
-    mesh.rotation.set(0.25, 0.35, 0)
-    mesh.scale.setScalar(0)
-    mesh.userData.targetScale = 1
-    plotGroup.add(mesh)
-    meshStates.push({
-      mesh,
-      record,
-      targetColor: new THREE.Color(0x38bdf8),
-      targetRotation: new THREE.Euler(0.25, 0.35, 0),
-    })
-  })
-
-  grid = new THREE.GridHelper(5.5, 11, 0x334155, 0x1e293b)
-  grid.rotation.x = Math.PI / 2
-  grid.position.z = -1.5
-  grid.material.transparent = true
-  grid.material.opacity = 0.45
-  plotGroup.add(grid)
-
-  renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.domElement.setAttribute('aria-hidden', 'true')
-  sceneHost.value.appendChild(renderer.domElement)
-
-  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  applyMapping()
-  resizeObserver = new ResizeObserver(resize)
-  resizeObserver.observe(sceneHost.value)
-  resize()
-  animate()
-}
-
-function disposeScene() {
-  if (animationFrame) cancelAnimationFrame(animationFrame)
-  resizeObserver?.disconnect()
-  meshStates.forEach(({ mesh }) => mesh.material.dispose())
-  meshStates.length = 0
-  geometries?.forEach((geometry) => geometry.dispose())
-  grid?.geometry.dispose()
-  grid?.material.dispose()
-  renderer?.dispose()
-  renderer?.domElement.remove()
-  resetSceneTilt()
-
-  renderer = scene = camera = plotGroup = geometries = grid = animationFrame = resizeObserver = undefined
-}
-
-watch(mapping, applyMapping)
-onSlideEnter(async () => {
-  await nextTick()
-  createScene()
-})
-onSlideLeave(disposeScene)
-</script>
-
-<style>
-.physical-properties-slide {
-  background: #f8fafc;
-  color: #0f172a;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-
-.physical-properties-slide h1 {
-  color: #0f172a;
-}
-
-.physical-claim {
-  color: #334155;
-  font-size: 1.4rem;
-  letter-spacing: 0.01em;
-  margin-top: 4.35rem;
-  text-align: center;
-}
-
-.physical-claim code,
-.physical-scene-map code,
-.physical-scene-caption code {
-  background: #dbeafe;
-  border-radius: 0.3rem;
-  color: #1d4ed8;
-  font-size: 0.88em;
-  padding: 0.08rem 0.28rem;
-}
-
-.physical-layout {
-  display: grid;
-  flex: 1;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  margin-top: 1rem;
-  min-height: 0;
-  width: 100%;
-}
-
-.physical-data-card,
-.physical-scene-card {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 1rem;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-  min-height: 19rem;
-  padding: 1rem 1.1rem 0.85rem;
-}
-
-.physical-data-card {
-  border-top: 4px solid #64748b;
-  display: flex;
-  flex-direction: column;
-}
-
-.physical-scene-card {
-  border-top: 4px solid #2563eb;
-  display: flex;
-  min-width: 0;
-}
-
-.physical-eyebrow,
-.physical-scene-title {
-  color: #64748b;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-}
-
-.physical-data-card h2 {
-  color: #1e293b;
-  font-size: 1.15rem;
-  margin: 0.15rem 0 0;
-}
-
-.physical-data-code {
-  background: #0f172a;
-  border-radius: 0.7rem;
-  color: #e2e8f0;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.68rem;
-  line-height: 1.65;
-  margin: 0.75rem 0 0;
-  overflow: hidden;
-  padding: 0.75rem 0.8rem;
-  white-space: pre;
-}
-
-.physical-code-keyword {
-  color: #93c5fd;
-}
-
-.physical-code-key {
-  color: #a7f3d0;
-}
-
-.physical-code-data {
-  color: #f9a8d4;
-}
-
-.physical-position-map {
-  color: #64748b;
-  font-size: 0.7rem;
-  margin-top: 0.65rem;
-}
-
-.physical-position-map code,
-.physical-mapping-control code {
-  background: #e2e8f0;
-  border-radius: 0.25rem;
-  color: #334155;
-  font-size: 0.9em;
-  padding: 0.08rem 0.22rem;
-}
-
-.physical-position-map span {
-  color: #cbd5e1;
-  margin: 0 0.3rem;
-}
-
-.physical-mapping-control {
-  align-items: center;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 0.65rem;
-  color: #334155;
-  display: flex;
-  font-size: 0.78rem;
-  font-weight: 700;
-  gap: 0.65rem;
-  justify-content: space-between;
-  margin-top: auto;
-  padding: 0.55rem 0.65rem;
-}
-
-.physical-mapping-control select {
-  background: #fff;
-  border: 1px solid #93c5fd;
-  border-radius: 0.45rem;
-  color: #0f172a;
-  font: inherit;
-  padding: 0.35rem 0.45rem;
-}
-
-.physical-scene-frame {
-  background: #081426;
-  border-radius: 0.75rem;
-  cursor: crosshair;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  position: relative;
-}
-
-.physical-scene-canvas,
-.physical-scene-canvas canvas {
-  display: block;
-  height: 100%;
-  inset: 0;
-  position: absolute;
-  width: 100%;
-}
-
-.physical-scene-title {
-  color: #cbd5e1;
-  left: 1rem;
-  position: absolute;
-  top: 0.9rem;
-}
-
-.physical-scene-map {
-  align-items: center;
-  background: rgba(15, 23, 42, 0.76);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 0.65rem;
-  color: #cbd5e1;
-  display: flex;
-  font-size: 0.7rem;
-  gap: 0.4rem;
-  padding: 0.45rem 0.6rem;
-  position: absolute;
-  right: 1rem;
-  top: 0.75rem;
-}
-
-.physical-scene-map code,
-.physical-scene-caption code {
-  background: rgba(219, 234, 254, 0.14);
-  color: #bfdbfe;
-}
-
-.physical-scene-map strong {
-  color: #93c5fd;
-}
-
-.physical-scene-caption {
-  bottom: 0.75rem;
-  color: #94a3b8;
-  font-size: 0.68rem;
-  left: 1rem;
-  position: absolute;
-}
-</style>
-
-<!--
-- Goal: choose a visual channel people can interpret. Show: switch from Scale to Color once, keeping the same records. Use: a channel that fits the data. Limit: these examples need legends and are not equally good for precise comparison.
-- `x` and `y` always map to local position. Pointer tilt changes the view, not the values; the screen positions can therefore move. Stable record IDs—not positions alone—preserve identity.
-- The dropdown remaps the same `data` value to mesh shape, color, scale, or rotation.
-- Mesh shape uses 20-point bands of the value, independent of record order. Shape does not provide a natural magnitude order. Scale is linear size = 0.5 + value/100, not proportional area or volume; rotation is a weak quantitative encoding. These are choices to evaluate, not four interchangeable recommendations.
-- Animate between mappings so viewers can track the same records instead of decoding a replacement scene.
-- Moving the pointer rotates the entire plot group, making the scene’s depth easier to see.
-- Position and scale are easier to compare precisely than color or rotation.
-- Color needs a legend and should not be the only way important information is communicated.
-- Pick a visual property that matches the meaning of the data; more channels are not automatically better.
--->
-
----
-class: demo-slide staggering-slide
----
-
-# Guide Attention with Timing
-
-<div class="demo-kind">Presentation</div>
-<div class="demo-lead">The same entry animation, with a small delay between records.</div>
-
-<div class="stagger-stage demo-stage demo-dark">
-  <div ref="sceneHost" class="stagger-scene" role="img" aria-label="Comparison of simultaneous and staggered Three.js entry animations"></div>
-  <div class="stagger-divider" aria-hidden="true"></div>
-  <section class="stagger-label stagger-label--left">
-    <div class="stagger-eyebrow">ALL AT ONCE</div>
-    <h2>Simultaneous entry</h2>
-    <div class="stagger-delay stagger-delay--left">delay = 0 ms</div>
-  </section>
-  <section class="stagger-label stagger-label--right">
-    <div class="stagger-eyebrow">STAGGERED</div>
-    <h2>One after another</h2>
-    <div class="stagger-delay stagger-delay--right">delay = index × 30 ms</div>
-  </section>
-</div>
-
-<button class="stagger-load-button" type="button" @click="loadData">
-  {{ hasLoaded ? 'Replay entry' : 'Play entry' }}
-</button>
-
-<div class="demo-takeaway">Use timing to guide attention. Cap the total delay; this doesn’t make rendering faster.</div>
-
-<script setup>
-import * as THREE from 'three'
-import { nextTick, ref } from 'vue'
-import { onSlideEnter, onSlideLeave } from '@slidev/client'
-
-const sceneHost = ref(null)
-const hasLoaded = ref(false)
-const entryDuration = 550
-const staggerDelay = 30
-const pointPositions = Array.from({ length: 12 }, (_, index) => new THREE.Vector3(
-  (index % 4 - 1.5) * 0.82,
-  (1 - Math.floor(index / 4)) * 0.55 - 0.3,
-  -((index * 7) % 3) * 0.12,
-))
-const pointScales = [1, 0.82, 1.08, 0.9, 0.76, 1.02, 0.86, 1.1, 0.8, 0.94, 0.74, 1]
-const pointColors = [0x38bdf8, 0x818cf8, 0xf472b6, 0xfbbf24, 0x34d399]
-
-let renderer
-let leftScene
-let rightScene
-let leftCamera
-let rightCamera
-let leftGroup
-let rightGroup
-let geometry
-let materials
-let grids = []
-let leftStates = []
-let rightStates = []
-let animationFrame
-let resizeObserver
-let reduceMotion = false
-
-function createView(background) {
-  const view = new THREE.Scene()
-  view.background = new THREE.Color(background)
-  view.fog = new THREE.Fog(background, 4.5, 8)
-  view.add(new THREE.AmbientLight(0xffffff, 1.25))
-
-  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
-  keyLight.position.set(-3, 4, 6)
-  view.add(keyLight)
-
-  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
-  rimLight.position.set(4, -1, -3)
-  view.add(rimLight)
-
-  const grid = new THREE.GridHelper(4.2, 8, 0x334155, 0x1e293b)
-  grid.rotation.x = Math.PI / 2
-  grid.position.z = -1
-  grid.material.transparent = true
-  grid.material.opacity = 0.4
-  view.add(grid)
-  grids.push(grid)
-  return view
-}
-
-function createCamera() {
-  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
-  camera.position.set(0, 0, 4.6)
-  camera.lookAt(0, 0, 0)
-  return camera
-}
-
-function createPoints(group) {
-  return pointPositions.map((position, index) => {
-    const mesh = new THREE.Mesh(geometry, materials[index])
-    mesh.position.copy(position)
-    mesh.position.y -= 0.35
-    mesh.scale.setScalar(0)
-    group.add(mesh)
-    return { mesh, position, startAt: undefined, targetScale: pointScales[index] }
-  })
-}
-
-function scheduleEntries(states, startedAt, delay) {
-  states.forEach((state, index) => {
-    state.mesh.position.copy(state.position)
-    state.mesh.position.y -= 0.35
-    state.mesh.scale.setScalar(0)
-    state.startAt = startedAt + index * delay
-  })
-}
-
-function loadData() {
-  if (!leftStates.length || !rightStates.length) return
-
-  hasLoaded.value = true
-  const startedAt = performance.now()
-  scheduleEntries(leftStates, startedAt, 0)
-  scheduleEntries(rightStates, startedAt, staggerDelay)
-}
-
-function updateEntries(states, time) {
-  states.forEach((state) => {
-    if (state.startAt === undefined || (!reduceMotion && time < state.startAt)) return
-
-    const progress = reduceMotion ? 1 : THREE.MathUtils.clamp((time - state.startAt) / entryDuration, 0, 1)
-    const eased = 1 - Math.pow(1 - progress, 3)
-    state.mesh.scale.setScalar(state.targetScale * eased)
-    state.mesh.position.y = state.position.y - 0.35 * (1 - eased)
-    if (progress === 1) state.startAt = undefined
-  })
-}
-
-function resize() {
-  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
-
-  const width = sceneHost.value.clientWidth
-  const height = sceneHost.value.clientHeight
-  if (!width || !height) return
-
-  renderer.setSize(width, height, false)
-  const leftWidth = Math.floor(width / 2)
-  leftCamera.aspect = leftWidth / height
-  rightCamera.aspect = (width - leftWidth) / height
-  leftCamera.updateProjectionMatrix()
-  rightCamera.updateProjectionMatrix()
-}
-
-function animate(time = performance.now()) {
-  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
-
-  animationFrame = requestAnimationFrame(animate)
-  updateEntries(leftStates, time)
-  updateEntries(rightStates, time)
-
-  const width = sceneHost.value.clientWidth
-  const height = sceneHost.value.clientHeight
-  const leftWidth = Math.floor(width / 2)
-  renderer.setScissorTest(true)
-  renderer.setViewport(0, 0, leftWidth, height)
-  renderer.setScissor(0, 0, leftWidth, height)
-  renderer.render(leftScene, leftCamera)
-  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
-  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
-  renderer.render(rightScene, rightCamera)
-  renderer.setScissorTest(false)
-}
-
-function createScene() {
-  if (renderer || !sceneHost.value) return
-
-  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  leftScene = createView(0x081426)
-  rightScene = createView(0x0a1d2d)
-  leftCamera = createCamera()
-  rightCamera = createCamera()
-  leftGroup = new THREE.Group()
-  rightGroup = new THREE.Group()
-  leftScene.add(leftGroup)
-  rightScene.add(rightGroup)
-
-  geometry = new THREE.DodecahedronGeometry(0.24)
-  materials = pointPositions.map((_, index) => new THREE.MeshStandardMaterial({
-    color: pointColors[index % pointColors.length],
-    metalness: 0.15,
-    roughness: 0.35,
-  }))
-  leftStates = createPoints(leftGroup)
-  rightStates = createPoints(rightGroup)
-
-  renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.domElement.setAttribute('aria-hidden', 'true')
-  sceneHost.value.appendChild(renderer.domElement)
-
-  resizeObserver = new ResizeObserver(resize)
-  resizeObserver.observe(sceneHost.value)
-  resize()
-  animate()
-}
-
-function disposeScene() {
-  if (animationFrame) cancelAnimationFrame(animationFrame)
-  resizeObserver?.disconnect()
-  grids.forEach((grid) => {
-    grid.geometry.dispose()
-    grid.material.dispose()
-  })
-  geometry?.dispose()
-  materials?.forEach((material) => material.dispose())
-  renderer?.dispose()
-  renderer?.domElement.remove()
-
-  grids = []
-  leftStates = []
-  rightStates = []
-  hasLoaded.value = false
-  renderer = leftScene = rightScene = leftCamera = rightCamera = leftGroup = rightGroup = geometry = materials = animationFrame = resizeObserver = undefined
-}
-
-onSlideEnter(async () => {
-  await nextTick()
-  createScene()
-})
-onSlideLeave(disposeScene)
-</script>
-
-<style>
-.staggering-slide {
-  background: #f8fafc;
-  color: #0f172a;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-
-.staggering-slide h1 {
-  color: #0f172a;
-}
-
-.stagger-claim {
-  color: #334155;
-  font-size: 1.5rem;
-  letter-spacing: 0.01em;
-  margin-top: 4.35rem;
-  text-align: center;
-}
-
-.stagger-claim strong {
-  color: #2563eb;
-}
-
-.stagger-stage {
-  background: #081426;
-  border: 1px solid #1e293b;
-  border-radius: 1rem;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
-  flex: 1;
-  margin-top: 1rem;
-  min-height: 18rem;
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-}
-
-.stagger-scene,
-.stagger-scene canvas {
-  display: block;
-  height: 100%;
-  inset: 0;
-  position: absolute;
-  width: 100%;
-}
-
-.stagger-divider {
-  background: rgba(148, 163, 184, 0.3);
-  bottom: 0;
-  left: 50%;
-  position: absolute;
-  top: 0;
-  width: 1px;
-  z-index: 1;
-}
-
-.stagger-label {
-  color: #f8fafc;
-  pointer-events: none;
-  position: absolute;
-  top: 1rem;
-  width: calc(50% - 2.5rem);
-  z-index: 2;
-}
-
-.stagger-label--left {
-  left: 1.25rem;
-}
-
-.stagger-label--right {
-  left: calc(50% + 1.25rem);
-}
-
-.stagger-eyebrow {
-  color: #cbd5e1;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-}
-
-.stagger-label h2 {
-  color: #fff;
-  font-size: 1.15rem;
-  margin: 0.15rem 0 0;
-}
-
-.stagger-delay {
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 0.5rem;
-  display: inline-block;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.65rem;
-  padding: 0.3rem 0.45rem;
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.stagger-delay--left {
-  color: #fdba74;
-}
-
-.stagger-delay--right {
-  color: #93c5fd;
-}
-
-.stagger-record-count {
-  bottom: 0.8rem;
-  color: #94a3b8;
-  font-size: 0.68rem;
-  position: absolute;
-  z-index: 2;
-}
-
-.stagger-record-count--left {
-  left: 1.25rem;
-}
-
-.stagger-record-count--right {
-  left: calc(50% + 1.25rem);
-}
-
-.stagger-load-button {
-  align-items: center;
-  align-self: center;
-  background: #2563eb;
-  border: 0;
-  border-radius: 0.65rem;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 700;
-  margin-top: 0.7rem;
-  padding: 0.55rem 0.9rem;
-}
-
-.stagger-load-button:hover {
-  background: #1d4ed8;
-}
-
-.stagger-load-button:focus-visible {
-  outline: 3px solid #93c5fd;
-  outline-offset: 3px;
-}
-
-</style>
-
-<!--
-- Goal: make a sequence easier to follow. Show: press Play entry once and compare the two sides. Use: a short, meaningful order. Limit: delay adds waiting; it is not a rendering optimization.
-- The button resets both scenes and shows the same twelve synthetic records; no network request is made.
-- Every marker uses the same 550 ms entry animation. These are appearance transitions, not changes to the records' values. Prefer opacity-only entry if movement or scale could be read as a quantitative change.
-- The left starts every marker at the same time.
-- The right starts each marker 30 ms after the previous marker.
-- Staggering does not make rendering faster; it controls pacing and directs attention.
-- Sort records into a meaningful order before staggering them.
-- Cap the total delay or animate in batches for large datasets.
-- With reduced motion enabled on entry, the button shows every record immediately. Decorative rotation is removed so only the timing differs.
--->
-
----
-class: demo-slide idle-motion-slide
----
-
-# Add Visual Interest to Idle Elements
-
-<div class="demo-kind">Presentation</div>
-<div class="demo-lead">Decorative rotation is optional. Moving a plotted position can suggest a new value.</div>
-
-<div class="idle-stage demo-stage demo-dark">
-  <div ref="sceneHost" class="idle-scene" role="img" aria-label="The same Three.js data points shown static on the left and with decorative idle motion on the right"></div>
-  <div class="idle-divider" aria-hidden="true"></div>
-  <section class="idle-label idle-label--left">
-    <div class="idle-eyebrow">STATIC</div>
-    <h2>Perfectly still</h2>
-  </section>
-  <section class="idle-label idle-label--right">
-    <div class="idle-eyebrow">IDLE MOTION</div>
-    <h2>Rotation only</h2>
-  </section>
-  <div class="idle-caption idle-caption--left demo-caption">fixed position · fixed rotation</div>
-  <div class="idle-caption idle-caption--right demo-caption">fixed position · decorative rotation</div>
-</div>
-
-<div class="demo-action">
-  <button class="demo-button" type="button" :disabled="reduceMotion" :aria-pressed="motionPaused || reduceMotion" @click="motionPaused = !motionPaused">{{ reduceMotion ? 'Rotation off (reduced motion)' : motionPaused ? 'Resume rotation' : 'Pause rotation' }}</button>
-</div>
-<div class="demo-takeaway">Use sparingly when orientation has no meaning. Let people pause.</div>
-
-<script setup>
-import * as THREE from 'three'
-import { nextTick, ref } from 'vue'
-import { onSlideEnter, onSlideLeave } from '@slidev/client'
-
-const sceneHost = ref(null)
-const motionPaused = ref(false)
-const reduceMotion = ref(false)
-const pointPositions = [
-  new THREE.Vector3(-1.25, 0.55, -0.1),
-  new THREE.Vector3(-0.42, 0.7, -0.3),
-  new THREE.Vector3(0.42, 0.55, 0.05),
-  new THREE.Vector3(1.25, 0.68, -0.2),
-  new THREE.Vector3(-1.05, -0.08, -0.25),
-  new THREE.Vector3(-0.2, 0.02, 0.08),
-  new THREE.Vector3(0.68, -0.08, -0.18),
-  new THREE.Vector3(-0.62, -0.72, 0),
-  new THREE.Vector3(0.22, -0.62, -0.28),
-  new THREE.Vector3(1.08, -0.72, 0.06),
-]
-
-let renderer
-let leftScene
-let rightScene
-let leftCamera
-let rightCamera
-let geometry
-let material
-let grids = []
-let rightStates = []
-let animationFrame
-let resizeObserver
-
-function createView(background) {
-  const view = new THREE.Scene()
-  view.background = new THREE.Color(background)
-  view.fog = new THREE.Fog(background, 4.5, 8)
-  view.add(new THREE.AmbientLight(0xffffff, 1.25))
-
-  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
-  keyLight.position.set(-3, 4, 6)
-  view.add(keyLight)
-
-  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
-  rimLight.position.set(4, -1, -3)
-  view.add(rimLight)
-
-  const grid = new THREE.GridHelper(4.2, 8, 0x334155, 0x1e293b)
-  grid.rotation.x = Math.PI / 2
-  grid.position.z = -1
-  grid.material.transparent = true
-  grid.material.opacity = 0.4
-  view.add(grid)
-  grids.push(grid)
-  return view
-}
-
-function createCamera() {
-  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
-  camera.position.set(0, 0, 4.6)
-  camera.lookAt(0, 0, 0)
-  return camera
-}
-
-function createPoints(view, animated) {
-  pointPositions.forEach((position, index) => {
-    const mesh = new THREE.Mesh(geometry, material)
-    const rotation = new THREE.Euler(0.2 + index * 0.08, 0.3 + index * 0.13, index * 0.04)
-    mesh.position.copy(position)
-    mesh.rotation.copy(rotation)
-    view.add(mesh)
-    if (animated) rightStates.push({ mesh, position, rotation, phase: index * 0.7 })
-  })
-}
-
-function resize() {
-  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
-
-  const width = sceneHost.value.clientWidth
-  const height = sceneHost.value.clientHeight
-  if (!width || !height) return
-
-  renderer.setSize(width, height, false)
-  const leftWidth = Math.floor(width / 2)
-  leftCamera.aspect = leftWidth / height
-  rightCamera.aspect = (width - leftWidth) / height
-  leftCamera.updateProjectionMatrix()
-  rightCamera.updateProjectionMatrix()
-}
-
-function animate(time = performance.now()) {
-  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
-
-  animationFrame = requestAnimationFrame(animate)
-  if (!reduceMotion.value && !motionPaused.value) {
-    const seconds = time / 1000
-    rightStates.forEach(({ mesh, rotation, phase }) => {
-      const wave = seconds * 0.85 + phase
-      mesh.rotation.x = rotation.x + Math.sin(wave * 0.7) * 0.08
-      mesh.rotation.y = rotation.y + seconds * 0.12
-      mesh.rotation.z = rotation.z + Math.cos(wave * 0.6) * 0.06
-    })
-  }
-
-  const width = sceneHost.value.clientWidth
-  const height = sceneHost.value.clientHeight
-  const leftWidth = Math.floor(width / 2)
-  renderer.setScissorTest(true)
-  renderer.setViewport(0, 0, leftWidth, height)
-  renderer.setScissor(0, 0, leftWidth, height)
-  renderer.render(leftScene, leftCamera)
-  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
-  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
-  renderer.render(rightScene, rightCamera)
-  renderer.setScissorTest(false)
-}
-
-function createScene() {
-  if (renderer || !sceneHost.value) return
-
-  reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  leftScene = createView(0x081426)
-  rightScene = createView(0x0a1d2d)
-  leftCamera = createCamera()
-  rightCamera = createCamera()
-  geometry = new THREE.BoxGeometry(0.36, 0.36, 0.36)
-  material = new THREE.MeshStandardMaterial({
-    color: 0x38bdf8,
-    metalness: 0.15,
-    roughness: 0.35,
-  })
-  createPoints(leftScene, false)
-  createPoints(rightScene, true)
-
-  renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.domElement.setAttribute('aria-hidden', 'true')
-  sceneHost.value.appendChild(renderer.domElement)
-
-  resizeObserver = new ResizeObserver(resize)
-  resizeObserver.observe(sceneHost.value)
-  resize()
-  animate()
-}
-
-function disposeScene() {
-  if (animationFrame) cancelAnimationFrame(animationFrame)
-  resizeObserver?.disconnect()
-  grids.forEach((grid) => {
-    grid.geometry.dispose()
-    grid.material.dispose()
-  })
-  geometry?.dispose()
-  material?.dispose()
-  renderer?.dispose()
-  renderer?.domElement.remove()
-
-  grids = []
-  rightStates = []
-  renderer = leftScene = rightScene = leftCamera = rightCamera = geometry = material = animationFrame = resizeObserver = undefined
-}
-
-onSlideEnter(async () => {
-  await nextTick()
-  createScene()
-})
-onSlideLeave(disposeScene)
-</script>
-
-<style>
-.idle-motion-slide {
-  background: #f8fafc;
-  color: #0f172a;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-
-.idle-motion-slide h1 {
-  color: #0f172a;
-}
-
-.idle-claim {
-  color: #334155;
-  font-size: 1.5rem;
-  letter-spacing: 0.01em;
-  margin-top: 4.35rem;
-  text-align: center;
-}
-
-.idle-claim strong {
-  color: #2563eb;
-}
-
-.idle-stage {
-  background: #081426;
-  border: 1px solid #1e293b;
-  border-radius: 1rem;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
-  flex: 1;
-  margin-top: 1rem;
-  min-height: 21rem;
-  overflow: hidden;
-  position: relative;
-  width: 100%;
-}
-
-.idle-scene,
-.idle-scene canvas {
-  display: block;
-  height: 100%;
-  inset: 0;
-  position: absolute;
-  width: 100%;
-}
-
-.idle-divider {
-  background: rgba(148, 163, 184, 0.3);
-  bottom: 0;
-  left: 50%;
-  position: absolute;
-  top: 0;
-  width: 1px;
-  z-index: 1;
-}
-
-.idle-label {
-  color: #f8fafc;
-  pointer-events: none;
-  position: absolute;
-  top: 1rem;
-  width: calc(50% - 2.5rem);
-  z-index: 2;
-}
-
-.idle-label--left {
-  left: 1.25rem;
-}
-
-.idle-label--right {
-  left: calc(50% + 1.25rem);
-}
-
-.idle-eyebrow {
-  color: #cbd5e1;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-}
-
-.idle-label h2 {
-  color: #fff;
-  font-size: 1.15rem;
-  margin: 0.15rem 0 0;
-}
-
-.idle-motion-badge {
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 0.5rem;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.65rem;
-  padding: 0.3rem 0.45rem;
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-
-.idle-motion-badge--left {
-  color: #cbd5e1;
-}
-
-.idle-motion-badge--right {
-  color: #93c5fd;
-}
-
-.idle-caption {
-  bottom: 0.8rem;
-  color: #94a3b8;
-  font-size: 0.68rem;
-  position: absolute;
-  z-index: 2;
-}
-
-.idle-caption--left {
-  left: 1.25rem;
-}
-
-.idle-caption--right {
-  left: calc(50% + 1.25rem);
-}
-</style>
-
-<!--
-- Goal: separate decoration from data. Show: compare the two sides, then press Pause rotation once. Use: orientation-neutral decoration. Limit: even subtle motion can distract, and it is misleading if orientation encodes a value.
-- Both sides keep identical mark positions. The right changes rotation only; the earlier positional bob has been removed. None of the rotation is mapped to data.
-- Every mark uses the same amplitude and speed with offset phases, so the motion feels organic rather than synchronized.
-- Keep idle movement slow and low-amplitude so it does not compete with the visualization.
-- Do not move a data-encoded position just to make a chart look alive. A stable hidden anchor does not prevent a moving visible mark from being misleading.
-- The demo becomes static when the user prefers reduced motion.
-- Stop animation work when the visualization is offscreen or hidden.
--->
 
 ---
 class: demo-slide billboard-slide
@@ -7679,6 +6110,1583 @@ onSlideLeave(disposeGpuPickScene)
 -->
 
 
+
+---
+layout: center
+class: text-center
+---
+
+# Animation and Presentation Tips
+
+---
+class: demo-slide entry-exit-slide
+---
+
+# Entry and Exit Animations
+
+<div class="demo-kind">Presentation</div>
+<div class="demo-lead">Make it clear which records arrived and which ones left.</div>
+
+<div class="entry-exit-layout demo-stage">
+  <div class="entry-exit-code-card">
+    <div class="entry-exit-card-eyebrow">Lifecycle sketch · pseudocode</div>
+    <h2>Keep track of each record</h2>
+    <pre class="entry-exit-code demo-code"><code><span class="entry-exit-code-enter">for each new record:</span>
+  add its mark
+  animate its entry
+<span class="entry-exit-code-exit">for each removed record:</span>
+  animate its exit
+  remove its mark</code></pre>
+  </div>
+  <div class="entry-exit-scene-card">
+    <div class="entry-exit-scene-frame demo-dark">
+      <div ref="sceneHost" class="entry-exit-scene-canvas" role="img" aria-label="Three.js scene showing data records entering and exiting"></div>
+      <div class="entry-exit-scene-count"><strong>{{ recordCount }}</strong> {{ recordCount === 1 ? 'record' : 'records' }}</div>
+      <div class="entry-exit-scene-caption">new records grow in · removed records shrink out</div>
+    </div>
+  </div>
+</div>
+
+<div class="entry-exit-controls demo-control">
+  <label for="entry-exit-count">Try 3 → 5 → 3 records</label>
+  <span class="entry-exit-range-bound">0</span>
+  <input id="entry-exit-count" v-model.number="recordCount" type="range" min="0" max="5" step="1" :aria-label="'Number of records: ' + recordCount" />
+  <span class="entry-exit-range-bound">5</span>
+  <output for="entry-exit-count" aria-live="polite">{{ recordCount }}</output>
+</div>
+
+<div class="demo-takeaway">Use transitions to explain membership. Don’t imply that a changing size is a changing value.</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const recordCount = ref(3)
+const recordPositions = [
+  new THREE.Vector3(-1.45, -0.05, 0.2),
+  new THREE.Vector3(-0.85, -0.45, -0.3),
+  new THREE.Vector3(-0.28, 0.1, -0.75),
+  new THREE.Vector3(0.35, -0.4, -0.15),
+  new THREE.Vector3(0.92, 0.05, -0.55),
+]
+const recordScales = [1, 0.85, 1.08, 0.92, 0.78]
+const recordColors = [0x38bdf8, 0x818cf8, 0xf472b6, 0xfbbf24, 0x34d399]
+const recordStates = recordPositions.map((position, index) => ({
+  index,
+  mesh: undefined,
+  position,
+  status: 'empty',
+  targetScale: 0,
+  targetY: position.y,
+}))
+
+let renderer
+let scene
+let camera
+let recordGroup
+let geometry
+let materials
+let animationFrame
+let resizeObserver
+let reduceMotion = false
+
+function createSceneView() {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(0x081426)
+  view.fog = new THREE.Fog(0x081426, 4.5, 9)
+  view.add(new THREE.AmbientLight(0xffffff, 1.25))
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  view.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  view.add(rimLight)
+  return view
+}
+
+function syncRecords() {
+  if (!recordGroup || !materials) return
+
+  recordStates.forEach((state) => {
+    if (state.index < recordCount.value) {
+      if (!state.mesh) {
+        state.mesh = new THREE.Mesh(geometry, materials[state.index % materials.length])
+        state.mesh.position.copy(state.position).add(new THREE.Vector3(0, -0.65, 0))
+        state.mesh.scale.setScalar(0)
+        recordGroup.add(state.mesh)
+      }
+      state.status = 'active'
+      state.targetScale = recordScales[state.index]
+      state.targetY = state.position.y
+      return
+    }
+
+    if (state.mesh) {
+      state.status = 'exiting'
+      state.targetScale = 0
+      state.targetY = state.position.y - 0.65
+    }
+  })
+}
+
+function resize() {
+  if (!renderer || !camera || !sceneHost.value) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+}
+
+function animate() {
+  if (!renderer || !scene || !camera || !recordGroup) return
+
+  animationFrame = requestAnimationFrame(animate)
+  const easing = reduceMotion ? 1 : 0.12
+  recordStates.forEach((state) => {
+    if (!state.mesh) return
+
+    const mesh = state.mesh
+    mesh.scale.setScalar(mesh.scale.x + (state.targetScale - mesh.scale.x) * easing)
+    mesh.position.y += (state.targetY - mesh.position.y) * easing
+
+    if (state.status === 'exiting' && mesh.scale.x < 0.015) {
+      mesh.removeFromParent()
+      state.mesh = undefined
+      state.status = 'empty'
+    }
+  })
+  renderer.render(scene, camera)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  scene = createSceneView()
+  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0.15, 5.4)
+  camera.lookAt(0, -0.28, 0)
+  recordGroup = new THREE.Group()
+  scene.add(recordGroup)
+
+  geometry = new THREE.IcosahedronGeometry(0.34, 2)
+  materials = recordColors.map((color) => new THREE.MeshStandardMaterial({
+    color,
+    metalness: 0.15,
+    roughness: 0.35,
+  }))
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  syncRecords()
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  recordStates.forEach((state) => {
+    state.mesh?.removeFromParent()
+    state.mesh = undefined
+    state.status = 'empty'
+  })
+  materials?.forEach((material) => material.dispose())
+  geometry?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  renderer = scene = camera = recordGroup = geometry = materials = animationFrame = resizeObserver = undefined
+}
+
+watch(recordCount, syncRecords)
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.entry-exit-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.entry-exit-slide h1 {
+  color: #0f172a;
+}
+
+.entry-exit-claim {
+  color: #334155;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.entry-exit-claim strong:first-child {
+  color: #16a34a;
+}
+
+.entry-exit-claim strong:last-child {
+  color: #ea580c;
+}
+
+.entry-exit-layout {
+  display: grid;
+  flex: 1;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  margin-top: 1rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.entry-exit-code-card,
+.entry-exit-scene-card {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  min-height: 18rem;
+  padding: 1rem 1.1rem 0.85rem;
+}
+
+.entry-exit-code-card {
+  border-top: 4px solid #64748b;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-exit-scene-card {
+  border-top: 4px solid #2563eb;
+  display: flex;
+  min-width: 0;
+}
+
+.entry-exit-card-eyebrow,
+.entry-exit-scene-title {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.entry-exit-code-card h2 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.entry-exit-code {
+  background: #0f172a;
+  border-radius: 0.7rem;
+  color: #e2e8f0;
+  flex: 1;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.67rem;
+  line-height: 1.45;
+  margin: 0.8rem 0 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.75rem 0.8rem;
+  white-space: pre;
+}
+
+.entry-exit-code-muted {
+  color: #93c5fd;
+}
+
+.entry-exit-code-string {
+  color: #a7f3d0;
+}
+
+.entry-exit-code-enter {
+  color: #86efac;
+}
+
+.entry-exit-code-exit {
+  color: #fdba74;
+}
+
+.entry-exit-scene-frame {
+  background: #081426;
+  border-radius: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.entry-exit-scene-canvas,
+.entry-exit-scene-canvas canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.entry-exit-scene-title {
+  color: #cbd5e1;
+  left: 1rem;
+  position: absolute;
+  top: 0.9rem;
+}
+
+.entry-exit-scene-count {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.65rem;
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  padding: 0.45rem 0.6rem;
+  position: absolute;
+  right: 1rem;
+  top: 0.75rem;
+}
+
+.entry-exit-scene-count strong {
+  color: #93c5fd;
+  font-size: 1.2rem;
+  margin-right: 0.2rem;
+}
+
+.entry-exit-scene-caption {
+  bottom: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  left: 1rem;
+  position: absolute;
+}
+
+.entry-exit-controls {
+  align-items: center;
+  color: #475569;
+  display: flex;
+  gap: 0.55rem;
+  margin: 0.65rem auto 0.1rem;
+  width: min(100%, 35rem);
+}
+
+.entry-exit-controls label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.entry-exit-controls input {
+  accent-color: #2563eb;
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-exit-range-bound {
+  color: #94a3b8;
+  font-size: 0.72rem;
+}
+
+.entry-exit-controls output {
+  background: #dbeafe;
+  border-radius: 0.4rem;
+  color: #1d4ed8;
+  font-size: 0.85rem;
+  font-weight: 800;
+  min-width: 1.5rem;
+  padding: 0.25rem 0.4rem;
+  text-align: center;
+}
+</style>
+
+<!--
+- Goal: help people follow membership changes. Show: move Records from 3 to 5, then back to 3. Use: arrivals/removals. Limit: when size or position encodes a measured value, prefer opacity or another cue that does not suggest intermediate measurements.
+- This synthetic scene uses five fixed records, not live case-study data. The visible text is pseudocode, not the implementation; this demo does not call d3.index. Keyed data matching can come from D3, while Three.js owns the marks.
+- Enter and exit are lifecycle ideas here—not DOM/SVG selections.
+- New records start at zero size and transition into their target size.
+- Removed records shrink away first, then are removed from the scene.
+- Start with three visible records. The data count changes only when the presenter changes the slider; there is no automatic cycle.
+- Decorative rotation is removed. Reduced motion on entry makes membership changes immediate.
+- At zero, every mesh exits and is cleaned up.
+- The slider is illustrative: the important idea is the animated lifecycle, not a performance benchmark.
+-->
+---
+class: demo-slide physical-properties-slide
+---
+
+# Tie Data to Observable Properties
+
+<div class="demo-kind">Presentation</div>
+<div class="demo-lead">Keep each record’s position. Change how its value looks.</div>
+
+<div class="physical-layout demo-stage">
+  <section class="physical-data-card">
+    <h2>Five records</h2>
+    <pre class="physical-data-code demo-code"><code><span class="physical-code-keyword">const</span> records = [
+  { <span class="physical-code-key">x</span>: -1.8, <span class="physical-code-key">y</span>:  0.7, <span class="physical-code-data">data</span>: 15 },
+  { <span class="physical-code-key">x</span>: -0.9, <span class="physical-code-key">y</span>: -0.6, <span class="physical-code-data">data</span>: 35 },
+  { <span class="physical-code-key">x</span>:  0.0, <span class="physical-code-key">y</span>:  0.3, <span class="physical-code-data">data</span>: 55 },
+  { <span class="physical-code-key">x</span>:  0.9, <span class="physical-code-key">y</span>: -0.4, <span class="physical-code-data">data</span>: 75 },
+  { <span class="physical-code-key">x</span>:  1.8, <span class="physical-code-key">y</span>:  0.6, <span class="physical-code-data">data</span>: 95 },
+]</code></pre>
+    <div class="physical-position-map"><code>x</code> → position.x <span>·</span> <code>y</code> → position.y</div>
+    <label class="physical-mapping-control" for="physical-mapping">
+      <span>Map <code>data</code> to</span>
+      <select id="physical-mapping" v-model="mapping">
+        <option value="mesh">Mesh shape</option>
+        <option value="color">Color</option>
+        <option value="scale">Scale</option>
+        <option value="rotation">Rotation</option>
+      </select>
+    </label>
+  </section>
+  <section class="physical-scene-card">
+    <div class="physical-scene-frame demo-dark" @pointermove="tiltScene" @pointerleave="resetSceneTilt">
+      <div ref="sceneHost" class="physical-scene-canvas" role="img" :aria-label="'Three.js scene mapping record data to ' + mappingLabels[mapping] + '. Move the pointer over the scene to rotate it.'"></div>
+      <div class="physical-scene-caption">Positions stay fixed in data space</div>
+    </div>
+  </section>
+</div>
+
+<div class="demo-takeaway">Try Scale → Color. Use a clear legend; size, shape, and rotation aren’t interchangeable.</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref, watch } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const mapping = ref('scale')
+const mappingLabels = {
+  mesh: 'Mesh shape',
+  color: 'Color',
+  scale: 'Scale',
+  rotation: 'Rotation',
+}
+const records = [
+  { x: -1.8, y: 0.7, data: 15 },
+  { x: -0.9, y: -0.6, data: 35 },
+  { x: 0, y: 0.3, data: 55 },
+  { x: 0.9, y: -0.4, data: 75 },
+  { x: 1.8, y: 0.6, data: 95 },
+]
+
+let renderer
+let scene
+let camera
+let plotGroup
+let geometries
+let grid
+let animationFrame
+let resizeObserver
+let targetTiltX = 0
+let targetTiltY = 0
+let reduceMotion = false
+const meshStates = []
+
+function applyMapping() {
+  if (!meshStates.length) return
+
+  meshStates.forEach(({ mesh, record, targetColor, targetRotation }) => {
+    const amount = record.data / 100
+    mesh.geometry = geometries[0]
+    mesh.userData.targetScale = 1
+    targetColor.set(0x38bdf8)
+    targetRotation.set(0.25, 0.35, 0)
+
+    if (mapping.value === 'mesh') mesh.geometry = geometries[Math.min(5, 1 + Math.floor(record.data / 20))]
+    if (mapping.value === 'color') targetColor.setHSL(0.62 - amount * 0.55, 0.82, 0.58)
+    if (mapping.value === 'scale') mesh.userData.targetScale = 0.5 + amount
+    if (mapping.value === 'rotation') targetRotation.set(0.2, amount * Math.PI, amount * Math.PI * 1.5)
+  })
+}
+
+function tiltScene(event) {
+  const bounds = event.currentTarget.getBoundingClientRect()
+  targetTiltX = -((event.clientY - bounds.top) / bounds.height - 0.5) * 0.45
+  targetTiltY = ((event.clientX - bounds.left) / bounds.width - 0.5) * 0.9
+}
+
+function resetSceneTilt() {
+  targetTiltX = 0
+  targetTiltY = 0
+}
+
+function resize() {
+  if (!renderer || !camera || !sceneHost.value) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+}
+
+function animate() {
+  if (!renderer || !scene || !camera) return
+
+  animationFrame = requestAnimationFrame(animate)
+  const easing = reduceMotion ? 1 : 0.08
+  if (plotGroup) {
+    plotGroup.rotation.x = THREE.MathUtils.lerp(plotGroup.rotation.x, targetTiltX, easing)
+    plotGroup.rotation.y = THREE.MathUtils.lerp(plotGroup.rotation.y, targetTiltY, easing)
+  }
+  meshStates.forEach(({ mesh, targetColor, targetRotation }) => {
+    const scale = THREE.MathUtils.lerp(mesh.scale.x, mesh.userData.targetScale, easing)
+    mesh.scale.setScalar(scale)
+    mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, targetRotation.x, easing)
+    mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, targetRotation.y, easing)
+    mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, targetRotation.z, easing)
+    mesh.material.color.lerp(targetColor, easing)
+  })
+  renderer.render(scene, camera)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  scene = new THREE.Scene()
+  scene.background = new THREE.Color(0x081426)
+  scene.fog = new THREE.Fog(0x081426, 6, 10)
+  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0.15, 6.4)
+  camera.lookAt(0, 0, 0)
+  plotGroup = new THREE.Group()
+  scene.add(plotGroup)
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.25))
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  scene.add(keyLight)
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  scene.add(rimLight)
+
+  geometries = [
+    new THREE.BoxGeometry(0.65, 0.42, 0.3),
+    new THREE.BoxGeometry(0.55, 0.55, 0.55),
+    new THREE.TetrahedronGeometry(0.42),
+    new THREE.OctahedronGeometry(0.42),
+    new THREE.TorusGeometry(0.32, 0.12, 12, 28),
+    new THREE.IcosahedronGeometry(0.4, 1),
+  ]
+  records.forEach((record) => {
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      metalness: 0.15,
+      roughness: 0.35,
+    })
+    const mesh = new THREE.Mesh(geometries[0], material)
+    mesh.position.set(record.x, record.y, 0)
+    mesh.rotation.set(0.25, 0.35, 0)
+    mesh.scale.setScalar(0)
+    mesh.userData.targetScale = 1
+    plotGroup.add(mesh)
+    meshStates.push({
+      mesh,
+      record,
+      targetColor: new THREE.Color(0x38bdf8),
+      targetRotation: new THREE.Euler(0.25, 0.35, 0),
+    })
+  })
+
+  grid = new THREE.GridHelper(5.5, 11, 0x334155, 0x1e293b)
+  grid.rotation.x = Math.PI / 2
+  grid.position.z = -1.5
+  grid.material.transparent = true
+  grid.material.opacity = 0.45
+  plotGroup.add(grid)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  applyMapping()
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  meshStates.forEach(({ mesh }) => mesh.material.dispose())
+  meshStates.length = 0
+  geometries?.forEach((geometry) => geometry.dispose())
+  grid?.geometry.dispose()
+  grid?.material.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+  resetSceneTilt()
+
+  renderer = scene = camera = plotGroup = geometries = grid = animationFrame = resizeObserver = undefined
+}
+
+watch(mapping, applyMapping)
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.physical-properties-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.physical-properties-slide h1 {
+  color: #0f172a;
+}
+
+.physical-claim {
+  color: #334155;
+  font-size: 1.4rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.physical-claim code,
+.physical-scene-map code,
+.physical-scene-caption code {
+  background: #dbeafe;
+  border-radius: 0.3rem;
+  color: #1d4ed8;
+  font-size: 0.88em;
+  padding: 0.08rem 0.28rem;
+}
+
+.physical-layout {
+  display: grid;
+  flex: 1;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  margin-top: 1rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.physical-data-card,
+.physical-scene-card {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  min-height: 19rem;
+  padding: 1rem 1.1rem 0.85rem;
+}
+
+.physical-data-card {
+  border-top: 4px solid #64748b;
+  display: flex;
+  flex-direction: column;
+}
+
+.physical-scene-card {
+  border-top: 4px solid #2563eb;
+  display: flex;
+  min-width: 0;
+}
+
+.physical-eyebrow,
+.physical-scene-title {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.physical-data-card h2 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.physical-data-code {
+  background: #0f172a;
+  border-radius: 0.7rem;
+  color: #e2e8f0;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.68rem;
+  line-height: 1.65;
+  margin: 0.75rem 0 0;
+  overflow: hidden;
+  padding: 0.75rem 0.8rem;
+  white-space: pre;
+}
+
+.physical-code-keyword {
+  color: #93c5fd;
+}
+
+.physical-code-key {
+  color: #a7f3d0;
+}
+
+.physical-code-data {
+  color: #f9a8d4;
+}
+
+.physical-position-map {
+  color: #64748b;
+  font-size: 0.7rem;
+  margin-top: 0.65rem;
+}
+
+.physical-position-map code,
+.physical-mapping-control code {
+  background: #e2e8f0;
+  border-radius: 0.25rem;
+  color: #334155;
+  font-size: 0.9em;
+  padding: 0.08rem 0.22rem;
+}
+
+.physical-position-map span {
+  color: #cbd5e1;
+  margin: 0 0.3rem;
+}
+
+.physical-mapping-control {
+  align-items: center;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.65rem;
+  color: #334155;
+  display: flex;
+  font-size: 0.78rem;
+  font-weight: 700;
+  gap: 0.65rem;
+  justify-content: space-between;
+  margin-top: auto;
+  padding: 0.55rem 0.65rem;
+}
+
+.physical-mapping-control select {
+  background: #fff;
+  border: 1px solid #93c5fd;
+  border-radius: 0.45rem;
+  color: #0f172a;
+  font: inherit;
+  padding: 0.35rem 0.45rem;
+}
+
+.physical-scene-frame {
+  background: #081426;
+  border-radius: 0.75rem;
+  cursor: crosshair;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.physical-scene-canvas,
+.physical-scene-canvas canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.physical-scene-title {
+  color: #cbd5e1;
+  left: 1rem;
+  position: absolute;
+  top: 0.9rem;
+}
+
+.physical-scene-map {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.65rem;
+  color: #cbd5e1;
+  display: flex;
+  font-size: 0.7rem;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  position: absolute;
+  right: 1rem;
+  top: 0.75rem;
+}
+
+.physical-scene-map code,
+.physical-scene-caption code {
+  background: rgba(219, 234, 254, 0.14);
+  color: #bfdbfe;
+}
+
+.physical-scene-map strong {
+  color: #93c5fd;
+}
+
+.physical-scene-caption {
+  bottom: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  left: 1rem;
+  position: absolute;
+}
+</style>
+
+<!--
+- Goal: choose a visual channel people can interpret. Show: switch from Scale to Color once, keeping the same records. Use: a channel that fits the data. Limit: these examples need legends and are not equally good for precise comparison.
+- `x` and `y` always map to local position. Pointer tilt changes the view, not the values; the screen positions can therefore move. Stable record IDs—not positions alone—preserve identity.
+- The dropdown remaps the same `data` value to mesh shape, color, scale, or rotation.
+- Mesh shape uses 20-point bands of the value, independent of record order. Shape does not provide a natural magnitude order. Scale is linear size = 0.5 + value/100, not proportional area or volume; rotation is a weak quantitative encoding. These are choices to evaluate, not four interchangeable recommendations.
+- Animate between mappings so viewers can track the same records instead of decoding a replacement scene.
+- Moving the pointer rotates the entire plot group, making the scene’s depth easier to see.
+- Position and scale are easier to compare precisely than color or rotation.
+- Color needs a legend and should not be the only way important information is communicated.
+- Pick a visual property that matches the meaning of the data; more channels are not automatically better.
+-->
+
+---
+class: demo-slide staggering-slide
+---
+
+# Guide Attention with Timing
+
+<div class="demo-kind">Presentation</div>
+<div class="demo-lead">The same entry animation, with a small delay between records.</div>
+
+<div class="stagger-stage demo-stage demo-dark">
+  <div ref="sceneHost" class="stagger-scene" role="img" aria-label="Comparison of simultaneous and staggered Three.js entry animations"></div>
+  <div class="stagger-divider" aria-hidden="true"></div>
+  <section class="stagger-label stagger-label--left">
+    <div class="stagger-eyebrow">ALL AT ONCE</div>
+    <h2>Simultaneous entry</h2>
+    <div class="stagger-delay stagger-delay--left">delay = 0 ms</div>
+  </section>
+  <section class="stagger-label stagger-label--right">
+    <div class="stagger-eyebrow">STAGGERED</div>
+    <h2>One after another</h2>
+    <div class="stagger-delay stagger-delay--right">delay = index × 30 ms</div>
+  </section>
+</div>
+
+<button class="stagger-load-button" type="button" @click="loadData">
+  {{ hasLoaded ? 'Replay entry' : 'Play entry' }}
+</button>
+
+<div class="demo-takeaway">Use timing to guide attention. Cap the total delay; this doesn’t make rendering faster.</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const hasLoaded = ref(false)
+const entryDuration = 550
+const staggerDelay = 30
+const pointPositions = Array.from({ length: 12 }, (_, index) => new THREE.Vector3(
+  (index % 4 - 1.5) * 0.82,
+  (1 - Math.floor(index / 4)) * 0.55 - 0.3,
+  -((index * 7) % 3) * 0.12,
+))
+const pointScales = [1, 0.82, 1.08, 0.9, 0.76, 1.02, 0.86, 1.1, 0.8, 0.94, 0.74, 1]
+const pointColors = [0x38bdf8, 0x818cf8, 0xf472b6, 0xfbbf24, 0x34d399]
+
+let renderer
+let leftScene
+let rightScene
+let leftCamera
+let rightCamera
+let leftGroup
+let rightGroup
+let geometry
+let materials
+let grids = []
+let leftStates = []
+let rightStates = []
+let animationFrame
+let resizeObserver
+let reduceMotion = false
+
+function createView(background) {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(background)
+  view.fog = new THREE.Fog(background, 4.5, 8)
+  view.add(new THREE.AmbientLight(0xffffff, 1.25))
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  view.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  view.add(rimLight)
+
+  const grid = new THREE.GridHelper(4.2, 8, 0x334155, 0x1e293b)
+  grid.rotation.x = Math.PI / 2
+  grid.position.z = -1
+  grid.material.transparent = true
+  grid.material.opacity = 0.4
+  view.add(grid)
+  grids.push(grid)
+  return view
+}
+
+function createCamera() {
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0, 4.6)
+  camera.lookAt(0, 0, 0)
+  return camera
+}
+
+function createPoints(group) {
+  return pointPositions.map((position, index) => {
+    const mesh = new THREE.Mesh(geometry, materials[index])
+    mesh.position.copy(position)
+    mesh.position.y -= 0.35
+    mesh.scale.setScalar(0)
+    group.add(mesh)
+    return { mesh, position, startAt: undefined, targetScale: pointScales[index] }
+  })
+}
+
+function scheduleEntries(states, startedAt, delay) {
+  states.forEach((state, index) => {
+    state.mesh.position.copy(state.position)
+    state.mesh.position.y -= 0.35
+    state.mesh.scale.setScalar(0)
+    state.startAt = startedAt + index * delay
+  })
+}
+
+function loadData() {
+  if (!leftStates.length || !rightStates.length) return
+
+  hasLoaded.value = true
+  const startedAt = performance.now()
+  scheduleEntries(leftStates, startedAt, 0)
+  scheduleEntries(rightStates, startedAt, staggerDelay)
+}
+
+function updateEntries(states, time) {
+  states.forEach((state) => {
+    if (state.startAt === undefined || (!reduceMotion && time < state.startAt)) return
+
+    const progress = reduceMotion ? 1 : THREE.MathUtils.clamp((time - state.startAt) / entryDuration, 0, 1)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    state.mesh.scale.setScalar(state.targetScale * eased)
+    state.mesh.position.y = state.position.y - 0.35 * (1 - eased)
+    if (progress === 1) state.startAt = undefined
+  })
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  const leftWidth = Math.floor(width / 2)
+  leftCamera.aspect = leftWidth / height
+  rightCamera.aspect = (width - leftWidth) / height
+  leftCamera.updateProjectionMatrix()
+  rightCamera.updateProjectionMatrix()
+}
+
+function animate(time = performance.now()) {
+  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
+
+  animationFrame = requestAnimationFrame(animate)
+  updateEntries(leftStates, time)
+  updateEntries(rightStates, time)
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  const leftWidth = Math.floor(width / 2)
+  renderer.setScissorTest(true)
+  renderer.setViewport(0, 0, leftWidth, height)
+  renderer.setScissor(0, 0, leftWidth, height)
+  renderer.render(leftScene, leftCamera)
+  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
+  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
+  renderer.render(rightScene, rightCamera)
+  renderer.setScissorTest(false)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  leftScene = createView(0x081426)
+  rightScene = createView(0x0a1d2d)
+  leftCamera = createCamera()
+  rightCamera = createCamera()
+  leftGroup = new THREE.Group()
+  rightGroup = new THREE.Group()
+  leftScene.add(leftGroup)
+  rightScene.add(rightGroup)
+
+  geometry = new THREE.DodecahedronGeometry(0.24)
+  materials = pointPositions.map((_, index) => new THREE.MeshStandardMaterial({
+    color: pointColors[index % pointColors.length],
+    metalness: 0.15,
+    roughness: 0.35,
+  }))
+  leftStates = createPoints(leftGroup)
+  rightStates = createPoints(rightGroup)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  grids.forEach((grid) => {
+    grid.geometry.dispose()
+    grid.material.dispose()
+  })
+  geometry?.dispose()
+  materials?.forEach((material) => material.dispose())
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  grids = []
+  leftStates = []
+  rightStates = []
+  hasLoaded.value = false
+  renderer = leftScene = rightScene = leftCamera = rightCamera = leftGroup = rightGroup = geometry = materials = animationFrame = resizeObserver = undefined
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.staggering-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.staggering-slide h1 {
+  color: #0f172a;
+}
+
+.stagger-claim {
+  color: #334155;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.stagger-claim strong {
+  color: #2563eb;
+}
+
+.stagger-stage {
+  background: #081426;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  flex: 1;
+  margin-top: 1rem;
+  min-height: 18rem;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.stagger-scene,
+.stagger-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.stagger-divider {
+  background: rgba(148, 163, 184, 0.3);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 1;
+}
+
+.stagger-label {
+  color: #f8fafc;
+  pointer-events: none;
+  position: absolute;
+  top: 1rem;
+  width: calc(50% - 2.5rem);
+  z-index: 2;
+}
+
+.stagger-label--left {
+  left: 1.25rem;
+}
+
+.stagger-label--right {
+  left: calc(50% + 1.25rem);
+}
+
+.stagger-eyebrow {
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.stagger-label h2 {
+  color: #fff;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.stagger-delay {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  display: inline-block;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  padding: 0.3rem 0.45rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.stagger-delay--left {
+  color: #fdba74;
+}
+
+.stagger-delay--right {
+  color: #93c5fd;
+}
+
+.stagger-record-count {
+  bottom: 0.8rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  position: absolute;
+  z-index: 2;
+}
+
+.stagger-record-count--left {
+  left: 1.25rem;
+}
+
+.stagger-record-count--right {
+  left: calc(50% + 1.25rem);
+}
+
+.stagger-load-button {
+  align-items: center;
+  align-self: center;
+  background: #2563eb;
+  border: 0;
+  border-radius: 0.65rem;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.25);
+  color: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.7rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.stagger-load-button:hover {
+  background: #1d4ed8;
+}
+
+.stagger-load-button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+</style>
+
+<!--
+- Goal: make a sequence easier to follow. Show: press Play entry once and compare the two sides. Use: a short, meaningful order. Limit: delay adds waiting; it is not a rendering optimization.
+- The button resets both scenes and shows the same twelve synthetic records; no network request is made.
+- Every marker uses the same 550 ms entry animation. These are appearance transitions, not changes to the records' values. Prefer opacity-only entry if movement or scale could be read as a quantitative change.
+- The left starts every marker at the same time.
+- The right starts each marker 30 ms after the previous marker.
+- Staggering does not make rendering faster; it controls pacing and directs attention.
+- Sort records into a meaningful order before staggering them.
+- Cap the total delay or animate in batches for large datasets.
+- With reduced motion enabled on entry, the button shows every record immediately. Decorative rotation is removed so only the timing differs.
+-->
+
+---
+class: demo-slide idle-motion-slide
+---
+
+# Add Visual Interest to Idle Elements
+
+<div class="demo-kind">Presentation</div>
+<div class="demo-lead">Decorative rotation is optional. Moving a plotted position can suggest a new value.</div>
+
+<div class="idle-stage demo-stage demo-dark">
+  <div ref="sceneHost" class="idle-scene" role="img" aria-label="The same Three.js data points shown static on the left and with decorative idle motion on the right"></div>
+  <div class="idle-divider" aria-hidden="true"></div>
+  <section class="idle-label idle-label--left">
+    <div class="idle-eyebrow">STATIC</div>
+    <h2>Perfectly still</h2>
+  </section>
+  <section class="idle-label idle-label--right">
+    <div class="idle-eyebrow">IDLE MOTION</div>
+    <h2>Rotation only</h2>
+  </section>
+  <div class="idle-caption idle-caption--left demo-caption">fixed position · fixed rotation</div>
+  <div class="idle-caption idle-caption--right demo-caption">fixed position · decorative rotation</div>
+</div>
+
+<div class="demo-action">
+  <button class="demo-button" type="button" :disabled="reduceMotion" :aria-pressed="motionPaused || reduceMotion" @click="motionPaused = !motionPaused">{{ reduceMotion ? 'Rotation off (reduced motion)' : motionPaused ? 'Resume rotation' : 'Pause rotation' }}</button>
+</div>
+<div class="demo-takeaway">Use sparingly when orientation has no meaning. Let people pause.</div>
+
+<script setup>
+import * as THREE from 'three'
+import { nextTick, ref } from 'vue'
+import { onSlideEnter, onSlideLeave } from '@slidev/client'
+
+const sceneHost = ref(null)
+const motionPaused = ref(false)
+const reduceMotion = ref(false)
+const pointPositions = [
+  new THREE.Vector3(-1.25, 0.55, -0.1),
+  new THREE.Vector3(-0.42, 0.7, -0.3),
+  new THREE.Vector3(0.42, 0.55, 0.05),
+  new THREE.Vector3(1.25, 0.68, -0.2),
+  new THREE.Vector3(-1.05, -0.08, -0.25),
+  new THREE.Vector3(-0.2, 0.02, 0.08),
+  new THREE.Vector3(0.68, -0.08, -0.18),
+  new THREE.Vector3(-0.62, -0.72, 0),
+  new THREE.Vector3(0.22, -0.62, -0.28),
+  new THREE.Vector3(1.08, -0.72, 0.06),
+]
+
+let renderer
+let leftScene
+let rightScene
+let leftCamera
+let rightCamera
+let geometry
+let material
+let grids = []
+let rightStates = []
+let animationFrame
+let resizeObserver
+
+function createView(background) {
+  const view = new THREE.Scene()
+  view.background = new THREE.Color(background)
+  view.fog = new THREE.Fog(background, 4.5, 8)
+  view.add(new THREE.AmbientLight(0xffffff, 1.25))
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 3)
+  keyLight.position.set(-3, 4, 6)
+  view.add(keyLight)
+
+  const rimLight = new THREE.DirectionalLight(0x60a5fa, 1.5)
+  rimLight.position.set(4, -1, -3)
+  view.add(rimLight)
+
+  const grid = new THREE.GridHelper(4.2, 8, 0x334155, 0x1e293b)
+  grid.rotation.x = Math.PI / 2
+  grid.position.z = -1
+  grid.material.transparent = true
+  grid.material.opacity = 0.4
+  view.add(grid)
+  grids.push(grid)
+  return view
+}
+
+function createCamera() {
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100)
+  camera.position.set(0, 0, 4.6)
+  camera.lookAt(0, 0, 0)
+  return camera
+}
+
+function createPoints(view, animated) {
+  pointPositions.forEach((position, index) => {
+    const mesh = new THREE.Mesh(geometry, material)
+    const rotation = new THREE.Euler(0.2 + index * 0.08, 0.3 + index * 0.13, index * 0.04)
+    mesh.position.copy(position)
+    mesh.rotation.copy(rotation)
+    view.add(mesh)
+    if (animated) rightStates.push({ mesh, position, rotation, phase: index * 0.7 })
+  })
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value || !leftCamera || !rightCamera) return
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  if (!width || !height) return
+
+  renderer.setSize(width, height, false)
+  const leftWidth = Math.floor(width / 2)
+  leftCamera.aspect = leftWidth / height
+  rightCamera.aspect = (width - leftWidth) / height
+  leftCamera.updateProjectionMatrix()
+  rightCamera.updateProjectionMatrix()
+}
+
+function animate(time = performance.now()) {
+  if (!renderer || !leftScene || !rightScene || !sceneHost.value) return
+
+  animationFrame = requestAnimationFrame(animate)
+  if (!reduceMotion.value && !motionPaused.value) {
+    const seconds = time / 1000
+    rightStates.forEach(({ mesh, rotation, phase }) => {
+      const wave = seconds * 0.85 + phase
+      mesh.rotation.x = rotation.x + Math.sin(wave * 0.7) * 0.08
+      mesh.rotation.y = rotation.y + seconds * 0.12
+      mesh.rotation.z = rotation.z + Math.cos(wave * 0.6) * 0.06
+    })
+  }
+
+  const width = sceneHost.value.clientWidth
+  const height = sceneHost.value.clientHeight
+  const leftWidth = Math.floor(width / 2)
+  renderer.setScissorTest(true)
+  renderer.setViewport(0, 0, leftWidth, height)
+  renderer.setScissor(0, 0, leftWidth, height)
+  renderer.render(leftScene, leftCamera)
+  renderer.setViewport(leftWidth, 0, width - leftWidth, height)
+  renderer.setScissor(leftWidth, 0, width - leftWidth, height)
+  renderer.render(rightScene, rightCamera)
+  renderer.setScissorTest(false)
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+
+  reduceMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  leftScene = createView(0x081426)
+  rightScene = createView(0x0a1d2d)
+  leftCamera = createCamera()
+  rightCamera = createCamera()
+  geometry = new THREE.BoxGeometry(0.36, 0.36, 0.36)
+  material = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    metalness: 0.15,
+    roughness: 0.35,
+  })
+  createPoints(leftScene, false)
+  createPoints(rightScene, true)
+
+  renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
+  sceneHost.value.appendChild(renderer.domElement)
+
+  resizeObserver = new ResizeObserver(resize)
+  resizeObserver.observe(sceneHost.value)
+  resize()
+  animate()
+}
+
+function disposeScene() {
+  if (animationFrame) cancelAnimationFrame(animationFrame)
+  resizeObserver?.disconnect()
+  grids.forEach((grid) => {
+    grid.geometry.dispose()
+    grid.material.dispose()
+  })
+  geometry?.dispose()
+  material?.dispose()
+  renderer?.dispose()
+  renderer?.domElement.remove()
+
+  grids = []
+  rightStates = []
+  renderer = leftScene = rightScene = leftCamera = rightCamera = geometry = material = animationFrame = resizeObserver = undefined
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  createScene()
+})
+onSlideLeave(disposeScene)
+</script>
+
+<style>
+.idle-motion-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.idle-motion-slide h1 {
+  color: #0f172a;
+}
+
+.idle-claim {
+  color: #334155;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.idle-claim strong {
+  color: #2563eb;
+}
+
+.idle-stage {
+  background: #081426;
+  border: 1px solid #1e293b;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  flex: 1;
+  margin-top: 1rem;
+  min-height: 21rem;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.idle-scene,
+.idle-scene canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.idle-divider {
+  background: rgba(148, 163, 184, 0.3);
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 1;
+}
+
+.idle-label {
+  color: #f8fafc;
+  pointer-events: none;
+  position: absolute;
+  top: 1rem;
+  width: calc(50% - 2.5rem);
+  z-index: 2;
+}
+
+.idle-label--left {
+  left: 1.25rem;
+}
+
+.idle-label--right {
+  left: calc(50% + 1.25rem);
+}
+
+.idle-eyebrow {
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.idle-label h2 {
+  color: #fff;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.idle-motion-badge {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  padding: 0.3rem 0.45rem;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.idle-motion-badge--left {
+  color: #cbd5e1;
+}
+
+.idle-motion-badge--right {
+  color: #93c5fd;
+}
+
+.idle-caption {
+  bottom: 0.8rem;
+  color: #94a3b8;
+  font-size: 0.68rem;
+  position: absolute;
+  z-index: 2;
+}
+
+.idle-caption--left {
+  left: 1.25rem;
+}
+
+.idle-caption--right {
+  left: calc(50% + 1.25rem);
+}
+</style>
+
+<!--
+- Goal: separate decoration from data. Show: compare the two sides, then press Pause rotation once. Use: orientation-neutral decoration. Limit: even subtle motion can distract, and it is misleading if orientation encodes a value.
+- Both sides keep identical mark positions. The right changes rotation only; the earlier positional bob has been removed. None of the rotation is mapped to data.
+- Every mark uses the same amplitude and speed with offset phases, so the motion feels organic rather than synchronized.
+- Keep idle movement slow and low-amplitude so it does not compete with the visualization.
+- Do not move a data-encoded position just to make a chart look alive. A stable hidden anchor does not prevent a moving visible mark from being misleading.
+- The demo becomes static when the user prefers reduced motion.
+- Stop animation work when the visualization is offscreen or hidden.
+-->
 
 ---
 class: explore-slide
