@@ -58,6 +58,11 @@ Death Star,All,Everyone,Right there,120 km,Destroy
 
 </div>
 
+<div v-click="1" class="rebel-doomed-reveal">
+  <img src="/videos/starwars-porkins.gif" alt="Porkins in his X-wing cockpit" />
+  <span>The rebels would be doomed</span>
+</div>
+
 <style>
 .target-briefing {
   --slidev-code-font-size: 18px;
@@ -75,27 +80,31 @@ Death Star,All,Everyone,Right there,120 km,Destroy
 .target-briefing .slidev-code {
   border: 1px solid var(--talk-border);
 }
+
+.rebel-doomed-reveal {
+  align-items: center;
+  bottom: 1.5rem;
+  display: flex;
+  gap: 1rem;
+  left: 3.5rem;
+  position: absolute;
+  z-index: 1;
+}
+
+.rebel-doomed-reveal img {
+  border-radius: 0.75rem;
+  box-shadow: 0 0.25rem 0.75rem rgb(15 23 42 / 20%);
+  display: block;
+  width: 14rem;
+}
+
+.rebel-doomed-reveal span {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.25;
+  max-width: 12rem;
+}
 </style>
-
----
-
-# The Rebels Would Be Doomed
-
-<div class="grid grid-cols-2 gap-8 items-center">
-
-<div>
-
-Sometimes, a clear picture makes all the difference.
-
-</div>
-
-<div>
-
-<img src="/videos/starwars-porkins.gif" class="rounded-xl shadow-lg" alt="Porkins in his X-wing cockpit" />
-
-</div>
-
-</div>
 
 ---
 class: space-viz
