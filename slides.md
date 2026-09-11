@@ -890,12 +890,46 @@ The visualization was much better on EVERY metric.
 </div>
 
 ---
+class: practice-overview-slide
+clicks: 3
+---
 
 # Let’s See Three.js In Practice
 
-- Development Considersations
-- Three.js features
-- Animation/presentation tips
+<div class="practice-card-grid">
+  <div class="practice-flip-card" :class="{ 'is-flipped': $clicks >= 1 }" role="group" aria-label="Development Considerations">
+    <div class="practice-flip-card-inner">
+      <div class="practice-flip-face practice-flip-front" :aria-hidden="$clicks >= 1">
+        <span>01</span>
+      </div>
+      <div class="practice-flip-face practice-flip-back" :aria-hidden="$clicks < 1">
+        <span>Development Considerations</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="practice-flip-card" :class="{ 'is-flipped': $clicks >= 2 }" role="group" aria-label="Three.js Features">
+    <div class="practice-flip-card-inner">
+      <div class="practice-flip-face practice-flip-front" :aria-hidden="$clicks >= 2">
+        <span>02</span>
+      </div>
+      <div class="practice-flip-face practice-flip-back" :aria-hidden="$clicks < 2">
+        <span>Three.js Features</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="practice-flip-card" :class="{ 'is-flipped': $clicks >= 3 }" role="group" aria-label="Animation and Presentation Tips">
+    <div class="practice-flip-card-inner">
+      <div class="practice-flip-face practice-flip-front" :aria-hidden="$clicks >= 3">
+        <span>03</span>
+      </div>
+      <div class="practice-flip-face practice-flip-back" :aria-hidden="$clicks < 3">
+        <span>Animation / Presentation Tips</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 ---
 class: demo-slide rendering-demo
