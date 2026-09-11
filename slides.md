@@ -903,7 +903,7 @@ clicks: 3
         <span>01</span>
       </div>
       <div class="practice-flip-face practice-flip-back" :aria-hidden="$clicks < 1">
-        <span>Development Considerations</span>
+        <span>Developing with Three.js</span>
       </div>
     </div>
   </div>
@@ -914,7 +914,7 @@ clicks: 3
         <span>02</span>
       </div>
       <div class="practice-flip-face practice-flip-back" :aria-hidden="$clicks < 2">
-        <span>Three.js Features</span>
+        <span>D3/Three.js Features</span>
       </div>
     </div>
   </div>
@@ -1031,8 +1031,6 @@ class: demo-slide rendering-demo
     <div v-else class="svg-demo-code" v-html="highlightedSvgCode"></div>
   </section>
 </div>
-
-<div class="demo-takeaway">Use SVG for direct styling and interaction. Measure the cost when many marks change.</div>
 
 <script setup>
 import { computed, ref } from 'vue'
@@ -1397,8 +1395,6 @@ class: demo-slide rendering-demo
   </section>
 </div>
 
-<div class="demo-takeaway">Use meshes for geometry and materials. Keep controls and record descriptions in HTML.</div>
-
 <script setup>
 import * as THREE from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
@@ -1693,271 +1689,6 @@ onSlideLeave(disposeScene)
 - This is an illustration, not a benchmark or a production-code adaptation. Code sketch shows the object setup; camera, rendering, and cleanup are omitted. Rotation is decorative and stops when reduced motion is enabled on entry.
 -->
 
----
-class: handoff-slide d3-handoff-slide
----
-
-# One Event, from D3 to Three.js
-
-
-<div class="mb-2 text-base">
-<code>event = { event_id: 'demo', ra: 236.54, dec: -4.217 }</code> · angles in degrees
-</div>
-
-<div class="grid grid-cols-2 gap-5">
-<div class="min-w-0">
-
-<h2 class="font-bold text-blue-900">D3 → clipped screen coordinates</h2>
-
-<<< @/snippets/d3-handoff.mjs#projection js
-
-<<< @/snippets/d3-handoff.mjs#project js
-
-<div class="mt-2 text-base"><code>point ≈ [455.23, 314.36]</code></div>
-
-</div>
-<div class="min-w-0">
-
-<h2 class="font-bold text-blue-900">Three.js → an existing marker instance</h2>
-
-<<< @/snippets/d3-handoff.mjs#place js
-
-```js
-renderer.render(scene, camera)
-```
-
-<div class="mt-2 text-base"><code>position ≈ (455.23, -314.36, 0)</code></div>
-<div class="mt-3 text-base text-slate-600">
-Flip Y for this camera. Zero scale hides clipped points.
-</div>
-
-</div>
-</div>
-
-<div class="mt-3 text-base font-semibold text-blue-900">
-Data or view changes → reproject → update instance matrices → request a frame.
-</div>
-
-<!--
-- Goal: show the numeric boundary rather than just promise compatibility. Show: follow the one illustrative event from its RA/Dec to the displayed position; no live interaction is needed. Use: keep D3's projection while changing rendering. Limit: clipping, coordinate conventions, and lifecycle still need explicit handling.
-- Adapted from portal-to-the-universe @ 6fc819a: modules_app/core/resources/assets/js/components/skyProjection.mjs createProjection() (line 37) and visiblePoint() (line 60); SkyMap.js projectMarkers() (line 202), updateMarkers() (line 263), and setData() (line 367).
-- The event is an illustrative fixture using the production field shape, not an asserted catalog record. Production coordinates() validates catalog values first; this example starts with valid numeric RA/Dec in degrees. Do not silently treat missing coordinates as zero.
-- At width 900 and zoom 1, the production scale formula gives (900 - 120) * (1 - 0.5) = 390. The rotation is an illustrative view setting. The numbers shown here are checked by node snippets/d3-handoff.mjs.
-- Direct projection([ra, dec]) bypasses clipping. The stream calls point(x, y) only when the point passes angular and viewport clipping; the null case is intentional.
-- The mesh is an existing InstancedMesh of 10 × 10 planes; dummy is a reused Object3D rotated 45 degrees for Graphic mode. Camera, scene, mesh/material allocation, selection styling, and lifecycle setup are omitted from the visible handoff. The instancing demonstration explains why instances are useful.
-- The real OrthographicCamera uses left=0, right=width, top=0, bottom=-height. Hence [x, y] screen pixels become [x, -y, 0] in local scene coordinates. Zero Z keeps the marks flat; the production sky layer has a separate depth offset.
-- A drag/zoom/resize marks the view dirty and reprojects existing markers. setData() matches event_id, retains marker state, and grows instance capacity only when needed. Stable IDs do not imply permanently stable instance indices.
-- instanceMatrix.needsUpdate schedules upload of changed numeric transforms; it is not the draw itself. Production updates the batch, then renderer.render(scene, camera) runs inside its coalesced requestAnimationFrame callback, not once per event.
-- Reuse here specifically means marker resources. The current implementation still replaces projected line/region geometries on relevant view changes; do not claim that every buffer is reused.
-- No invented magnitude-to-size scale: Graphic marks have a fixed size; Space classification colors use a fixed palette. A quantitative scale belongs in the example only if the data has a meaningful quantitative encoding.
-- For geographic lines/regions, projectPath() also keeps D3: geoPath(projection, customContext) emits numeric segments and Three.js ShapePath operations rather than SVG d strings.
-- The runnable check verifies clipping, coordinate conversion, orthographic mapping, and instance reuse without a browser; it is not a rendering benchmark or a full application reproduction.
--->
-
----
-class: handoff-slide d3-handoff-slide force-layout-slide
----
-
-# D3 Can Compute the Layout, Too
-
-<div class="mb-4 text-base text-slate-600">Synthetic example—not part of the case study.</div>
-
-<div class="force-layout-grid">
-<div>
-
-<h2 class="font-bold text-blue-900">On each D3 simulation tick</h2>
-
-<<< @/slides.md#force-upload js
-
-<div class="mt-5 text-lg"><strong>D3’s simulation still runs on the CPU.</strong></div>
-<div class="mt-3 text-base text-slate-600">Colors stay with the nodes. Regroup changes which cluster each node moves toward.</div>
-<div class="mt-4 text-base font-semibold">320 nodes · one position buffer</div>
-
-</div>
-<div>
-  <div class="force-layout-stage" role="img" aria-label="320 synthetic nodes in four clusters. Regroup switches from category-based targets to an alternate grouping key; node colors do not change.">
-    <svg v-if="!ready" class="force-layout-fallback" viewBox="0 0 640 400" aria-hidden="true">
-      <circle v-for="(node, i) in previewNodes" :key="i" :cx="node.x" :cy="node.y" r="2.8" :fill="node.color" />
-    </svg>
-    <div ref="sceneHost" class="force-layout-canvas" aria-hidden="true"></div>
-  </div>
-  <div class="force-layout-controls">
-    <button type="button" :disabled="!ready" @click="regroup">Regroup</button>
-    <div class="force-layout-status" role="status" aria-live="polite">
-      <template v-if="error">{{ error }}</template>
-      <template v-else-if="ready">{{ mixed ? 'Alternate key' : 'Category' }} · {{ settled ? 'settled' : 'settling…' }}<span v-if="reducedMotion"> · reduced motion</span></template>
-      <template v-else>Static preview · 80 nodes per category</template>
-    </div>
-  </div>
-</div>
-</div>
-
-<div class="mt-4 text-base font-semibold text-blue-900">D3 updates positions → buffer changes → GPU draws nodes.</div>
-
-<script setup>
-import * as THREE from 'three'
-import { forceCollide, forceSimulation, forceX, forceY } from 'd3'
-import { nextTick, onBeforeUnmount, ref } from 'vue'
-import { onSlideEnter, onSlideLeave, useIsSlideActive, useNav, useSlideContext } from '@slidev/client'
-
-const sceneHost = ref(null)
-const ready = ref(false), settled = ref(false), mixed = ref(false), reducedMotion = ref(false)
-const error = ref('')
-const active = useIsSlideActive()
-const { isPrintMode } = useNav()
-const { $renderContext: renderContext } = useSlideContext()
-const count = 320
-const palette = ['#38bdf8', '#f472b6', '#fbbf24', '#34d399']
-const targets = [[-150, 85], [150, 85], [-150, -85], [150, -85]]
-// ponytail: static preview illustrates the clusters, not exact solver output; capture a live frame if pixel matching matters.
-const previewNodes = Array.from({ length: count }, (_, i) => {
-  const n = Math.floor(i / 4), angle = n * Math.PI * (3 - Math.sqrt(5)), radius = 4.4 * Math.sqrt(n)
-  const [x, y] = targets[i % 4]
-  return { x: 320 + x + Math.cos(angle) * radius, y: 200 - y + Math.sin(angle) * radius, color: palette[i % 4] }
-})
-let renderer, scene, camera, geometry, material, positions, simulation, resizeObserver, events, preference
-let nodes = [] // Plain objects: D3 ticks never mutate Vue's reactive state.
-
-function draw() {
-  if (!renderer) return
-  // #region force-upload
-  nodes.forEach((node, i) => {
-    positions.setXYZ(i, node.x, node.y, 0)
-  })
-  positions.needsUpdate = true
-  renderer.render(scene, camera)
-  // #endregion
-}
-
-function run() {
-  if (!simulation || document.hidden) return
-  simulation.stop()
-  if (reducedMotion.value) {
-    const ticks = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()))
-    simulation.tick(ticks) // Manual ticks don't dispatch D3's tick/end events.
-    draw()
-    settled.value = true
-  } else if (simulation.alpha() >= simulation.alphaMin()) {
-    settled.value = false
-    simulation.restart()
-  }
-}
-
-function retarget() {
-  const group = node => mixed.value ? Math.floor(node.id / 4) % 4 : node.id % 4
-  simulation.force('x', forceX(node => targets[group(node)][0]).strength(0.14))
-  simulation.force('y', forceY(node => targets[group(node)][1]).strength(0.14))
-  simulation.alpha(1)
-  run()
-}
-
-function regroup() {
-  if (!simulation) return
-  mixed.value = !mixed.value
-  retarget()
-}
-
-function resize() {
-  if (!renderer || !sceneHost.value) return
-  const width = sceneHost.value.clientWidth, height = sceneHost.value.clientHeight
-  if (!width || !height) return
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
-  renderer.setSize(width, height, false)
-  camera.left = -200 * width / height
-  camera.right = 200 * width / height
-  camera.updateProjectionMatrix()
-  draw()
-}
-
-function disposeScene() {
-  simulation?.stop()
-  simulation?.on('tick', null).on('end', null)
-  resizeObserver?.disconnect()
-  events?.abort()
-  geometry?.dispose()
-  material?.dispose()
-  renderer?.dispose()
-  renderer?.forceContextLoss()
-  renderer?.domElement.remove()
-  renderer = scene = camera = geometry = material = positions = simulation = resizeObserver = events = preference = undefined
-  nodes = []
-  ready.value = false
-}
-
-function createScene() {
-  if (renderer || !sceneHost.value) return
-  error.value = ''
-  mixed.value = false
-  try {
-    renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setClearColor(0x0f172a)
-    sceneHost.value.appendChild(renderer.domElement)
-    scene = new THREE.Scene()
-    camera = new THREE.OrthographicCamera(-320, 320, 200, -200, 0.1, 100)
-    camera.position.z = 10
-    nodes = Array.from({ length: count }, (_, id) => ({ id }))
-    positions = new THREE.BufferAttribute(new Float32Array(count * 3), 3)
-    positions.setUsage(THREE.DynamicDrawUsage)
-    geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', positions)
-    const colors = new Float32Array(count * 3)
-    nodes.forEach((node, i) => new THREE.Color(palette[node.id % 4]).toArray(colors, i * 3))
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-    material = new THREE.PointsMaterial({ size: 5, vertexColors: true, sizeAttenuation: false })
-    const points = new THREE.Points(geometry, material)
-    points.frustumCulled = false // Positions change without recomputing a bounding sphere.
-    scene.add(points)
-    simulation = forceSimulation(nodes).stop()
-      .alphaDecay(0.05)
-      .force('collide', forceCollide(5))
-      .on('tick', draw)
-      .on('end', () => { settled.value = true })
-    events = new AbortController()
-    preference = window.matchMedia('(prefers-reduced-motion: reduce)')
-    reducedMotion.value = preference.matches
-    preference.addEventListener('change', event => {
-      reducedMotion.value = event.matches
-      run()
-    }, { signal: events.signal })
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) simulation?.stop()
-      else run()
-    }, { signal: events.signal })
-    renderer.domElement.addEventListener('webglcontextlost', event => {
-      event.preventDefault()
-      disposeScene()
-      error.value = 'WebGL unavailable · static illustration shown'
-    }, { signal: events.signal })
-    resizeObserver = new ResizeObserver(resize)
-    resizeObserver.observe(sceneHost.value)
-    ready.value = true
-    resize()
-    retarget()
-  } catch (cause) {
-    disposeScene()
-    error.value = 'WebGL unavailable · static illustration shown'
-    console.warn('Force demo could not initialize', cause)
-  }
-}
-
-onSlideEnter(async () => {
-  await nextTick()
-  if (active.value && !isPrintMode.value && ['slide', 'presenter'].includes(renderContext.value)) createScene()
-})
-onSlideLeave(disposeScene)
-onBeforeUnmount(disposeScene)
-</script>
-
-<!--
-- Planned 60–90-second delivery: (0–20s) establish the synthetic data and CPU/GPU boundary; (20–40s) let the four category clusters settle and point out the shared position buffer; (40–65s) press Regroup once and watch the same colored records follow a different grouping key; (65–80s) trace tick → numeric buffer → render, then state the limitation. Rehearsal must confirm the actual delivery time.
-- There are 320 synthetic records, four original categories of 80, and four targets. Regroup switches between id % 4 and floor(id / 4) % 4. Color stays tied to the original category; the alternate layout mixes colors rather than changing the underlying records.
-- forceX/forceY pull nodes toward targets; forceCollide separates them. Replacing the position forces refreshes D3's cached targets, and alpha(1).restart() reheats the existing simulation. We keep the same node objects, geometry, and position buffer across regrouping.
-- D3 owns the CPU simulation timer. Its tick callback writes a Three.js BufferAttribute; needsUpdate schedules an upload, and renderer.render submits the points. There is no second perpetual requestAnimationFrame loop and no Vue update for each node on each tick.
-- Use this pattern when a CPU layout algorithm produces positions for a renderer. WebGL does not move D3's force solver onto the GPU; a larger or more expensive simulation can still block the main thread. This scene illustrates architecture, not a performance threshold or benchmark.
-- The simulation cools and stops on its own. Leaving the slide stops it immediately and releases observers, listeners, geometry, material, and renderer. Hidden documents pause it. Reduced motion settles synchronously and renders once; Regroup still works without an animated transition.
-- Print, overview, and inactive previews show a clearly labeled static SVG illustration, not a live WebGL simulation. The same illustration is available if WebGL initialization fails or its context is lost.
-- There are deliberately no edges, dragging, or physics sliders. One planned interaction is enough to demonstrate the handoff.
--->
 
 ---
 class: handoff-slide d3-handoff-slide
@@ -2024,6 +1755,67 @@ useEffect(() => {
 class: handoff-slide d3-handoff-slide
 ---
 
+# One Event, from D3 to Three.js
+
+
+<div class="mb-2 text-base">
+<code>event = { event_id: 'demo', ra: 236.54, dec: -4.217 }</code> · angles in degrees
+</div>
+
+<div class="grid grid-cols-2 gap-5">
+<div class="min-w-0">
+
+<h2 class="font-bold text-blue-900">D3 → clipped screen coordinates</h2>
+
+<<< @/snippets/d3-handoff.mjs#projection js
+
+<<< @/snippets/d3-handoff.mjs#project js
+
+<div class="mt-2 text-base"><code>point ≈ [455.23, 314.36]</code></div>
+
+</div>
+<div class="min-w-0">
+
+<h2 class="font-bold text-blue-900">Three.js → an existing marker instance</h2>
+
+<<< @/snippets/d3-handoff.mjs#place js
+
+```js
+renderer.render(scene, camera)
+```
+
+<div class="mt-2 text-base"><code>position ≈ (455.23, -314.36, 0)</code></div>
+<div class="mt-3 text-base text-slate-600">
+Flip Y for this camera. Zero scale hides clipped points.
+</div>
+
+</div>
+</div>
+
+<div class="mt-3 text-base font-semibold text-blue-900">
+Data or view changes → reproject → update instance matrices → request a frame.
+</div>
+
+<!--
+- Goal: show the numeric boundary rather than just promise compatibility. Show: follow the one illustrative event from its RA/Dec to the displayed position; no live interaction is needed. Use: keep D3's projection while changing rendering. Limit: clipping, coordinate conventions, and lifecycle still need explicit handling.
+- Adapted from portal-to-the-universe @ 6fc819a: modules_app/core/resources/assets/js/components/skyProjection.mjs createProjection() (line 37) and visiblePoint() (line 60); SkyMap.js projectMarkers() (line 202), updateMarkers() (line 263), and setData() (line 367).
+- The event is an illustrative fixture using the production field shape, not an asserted catalog record. Production coordinates() validates catalog values first; this example starts with valid numeric RA/Dec in degrees. Do not silently treat missing coordinates as zero.
+- At width 900 and zoom 1, the production scale formula gives (900 - 120) * (1 - 0.5) = 390. The rotation is an illustrative view setting. The numbers shown here are checked by node snippets/d3-handoff.mjs.
+- Direct projection([ra, dec]) bypasses clipping. The stream calls point(x, y) only when the point passes angular and viewport clipping; the null case is intentional.
+- The mesh is an existing InstancedMesh of 10 × 10 planes; dummy is a reused Object3D rotated 45 degrees for Graphic mode. Camera, scene, mesh/material allocation, selection styling, and lifecycle setup are omitted from the visible handoff. The instancing demonstration explains why instances are useful.
+- The real OrthographicCamera uses left=0, right=width, top=0, bottom=-height. Hence [x, y] screen pixels become [x, -y, 0] in local scene coordinates. Zero Z keeps the marks flat; the production sky layer has a separate depth offset.
+- A drag/zoom/resize marks the view dirty and reprojects existing markers. setData() matches event_id, retains marker state, and grows instance capacity only when needed. Stable IDs do not imply permanently stable instance indices.
+- instanceMatrix.needsUpdate schedules upload of changed numeric transforms; it is not the draw itself. Production updates the batch, then renderer.render(scene, camera) runs inside its coalesced requestAnimationFrame callback, not once per event.
+- Reuse here specifically means marker resources. The current implementation still replaces projected line/region geometries on relevant view changes; do not claim that every buffer is reused.
+- No invented magnitude-to-size scale: Graphic marks have a fixed size; Space classification colors use a fixed palette. A quantitative scale belongs in the example only if the data has a meaningful quantitative encoding.
+- For geographic lines/regions, projectPath() also keeps D3: geoPath(projection, customContext) emits numeric segments and Three.js ShapePath operations rather than SVG d strings.
+- The runnable check verifies clipping, coordinate conversion, orthographic mapping, and instance reuse without a browser; it is not a rendering benchmark or a full application reproduction.
+-->
+
+---
+class: handoff-slide d3-handoff-slide
+---
+
 # Resize and Clean Up
 
 <div class="mb-4 text-base text-slate-600">The component calls destroy(). The renderer releases what it owns.</div>
@@ -2071,12 +1863,450 @@ requestFrame()
 -->
 
 ---
+class: demo-slide buffer-geometry-slide
+---
+
+# BufferGeometry: Work with Numbers
+
+<div class="demo-kind">Diagram</div>
+<div class="demo-lead">When coordinates change, update numbers instead of rebuilding path text.</div>
+
+<div class="buffer-comparison demo-stage">
+  <div class="buffer-lane buffer-lane--svg">
+    <div class="buffer-lane-heading">
+      <div class="buffer-eyebrow">SVG PATH ANIMATION</div>
+      <h2>D3 → DOM → parser</h2>
+    </div>
+    <div class="buffer-flow">
+      <div class="buffer-step buffer-step--string"><code>d="M…"</code><small>serialize text</small></div><span class="buffer-arrow">→</span><div class="buffer-step"><strong>Browser</strong><small>parse + paint</small></div>
+    </div>
+    <div class="buffer-plot">
+      <div class="buffer-plot-label">Coordinates encoded as path text</div>
+      <svg viewBox="0 0 264 100" role="img" aria-label="A line encoded as an SVG path string">
+        <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
+        <path class="buffer-svg-path" d="M12 75 L35 48 L58 64 L81 36 L105 66 L129 26 L153 55 L178 31 L204 58 L230 21 L252 32" />
+      </svg>
+    </div>
+    <div class="buffer-cost">Update <code>d</code> when coordinates change.</div>
+  </div>
+  <div class="buffer-lane buffer-lane--buffer">
+    <div class="buffer-lane-heading">
+      <div class="buffer-eyebrow">BUFFERGEOMETRY</div>
+      <h2>Numbers → GPU buffer</h2>
+    </div>
+    <div class="buffer-flow">
+      <div class="buffer-step buffer-step--array"><code>Float32Array</code><small>position data</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--geometry"><strong>GPU</strong><small>draw vertices</small></div>
+    </div>
+    <div class="buffer-plot">
+      <div class="buffer-plot-label">The same coordinates as vertices</div>
+      <svg viewBox="0 0 264 100" role="img" aria-label="A line made from numeric vertices">
+        <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
+        <polyline class="buffer-buffer-path" points="12,75 35,48 58,64 81,36 105,66 129,26 153,55 178,31 204,58 230,21 252,32" />
+        <g class="buffer-vertices"><circle cx="12" cy="75" r="3" /><circle cx="35" cy="48" r="3" /><circle cx="58" cy="64" r="3" /><circle cx="81" cy="36" r="3" /><circle cx="105" cy="66" r="3" /><circle cx="129" cy="26" r="3" /><circle cx="153" cy="55" r="3" /><circle cx="178" cy="31" r="3" /><circle cx="204" cy="58" r="3" /><circle cx="230" cy="21" r="3" /><circle cx="252" cy="32" r="3" /></g>
+      </svg>
+    </div>
+    <div class="buffer-cost">Upload changed numeric attributes.</div>
+  </div>
+</div>
+
+<div class="demo-takeaway">Use buffers for vertex data. Batching separate objects is a separate decision.</div>
+
+<style>
+.buffer-geometry-slide {
+  background: #f8fafc;
+  color: #0f172a;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.buffer-geometry-slide h1 {
+  color: #0f172a;
+}
+
+.buffer-claim {
+  color: #334155;
+  font-size: 1.55rem;
+  letter-spacing: 0.01em;
+  margin-top: 4.35rem;
+  text-align: center;
+}
+
+.buffer-claim strong:first-child {
+  color: #ea580c;
+}
+
+.buffer-claim strong:last-child {
+  color: #2563eb;
+}
+
+.buffer-comparison {
+  display: grid;
+  flex: 1;
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 1rem;
+  min-height: 0;
+  width: 100%;
+}
+
+.buffer-lane {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 18rem;
+  padding: 1rem 1.1rem 0.85rem;
+}
+
+.buffer-lane--svg {
+  border-top: 4px solid #f97316;
+}
+
+.buffer-lane--buffer {
+  border-top: 4px solid #2563eb;
+}
+
+.buffer-lane-heading {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+}
+
+.buffer-eyebrow {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.buffer-lane h2 {
+  color: #1e293b;
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0;
+}
+
+.buffer-flow {
+  align-items: stretch;
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  min-height: 3.8rem;
+}
+
+.buffer-step {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.55rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.4rem 0.3rem;
+  text-align: center;
+}
+
+.buffer-step strong,
+.buffer-step code {
+  color: #1e293b;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.buffer-step code {
+  background: transparent;
+  font-size: 0.68rem;
+  overflow: hidden;
+  padding: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.buffer-step small {
+  color: #64748b;
+  font-size: 0.58rem;
+  margin-top: 0.2rem;
+  white-space: nowrap;
+}
+
+.buffer-step--string {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.buffer-step--string code {
+  color: #c2410c;
+}
+
+.buffer-step--array,
+.buffer-step--geometry {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.buffer-step--array code,
+.buffer-step--geometry strong {
+  color: #1d4ed8;
+}
+
+.buffer-arrow {
+  align-self: center;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.buffer-plot {
+  background: #0f172a;
+  border-radius: 0.75rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin-top: 0.85rem;
+  min-height: 0;
+  padding: 0.55rem 0.7rem 0.65rem;
+}
+
+.buffer-plot-label {
+  color: #94a3b8;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.buffer-plot svg {
+  display: block;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.buffer-grid-line {
+  fill: none;
+  stroke: #334155;
+  stroke-width: 0.7;
+}
+
+.buffer-svg-path {
+  fill: none;
+  stroke: #fb923c;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.buffer-buffer-path {
+  fill: none;
+  stroke: #60a5fa;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.buffer-vertices circle {
+  fill: #bfdbfe;
+  stroke: #2563eb;
+  stroke-width: 1;
+}
+
+.buffer-cost {
+  align-items: baseline;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+  padding-top: 0.55rem;
+}
+
+.buffer-cost strong {
+  font-size: 1.3rem;
+}
+
+.buffer-cost--svg strong {
+  color: #ea580c;
+}
+
+.buffer-cost--buffer strong {
+  color: #16a34a;
+}
+
+.buffer-summary {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: 0.7rem auto 0.15rem;
+  text-align: center;
+}
+
+.buffer-summary strong {
+  color: #334155;
+}
+</style>
+
+<!--
+- Goal: avoid repeated coordinate-to-text updates. Show: trace the same eleven coordinates through each lane; no control interaction is needed. Use: numeric vertex data. Limit: BufferGeometry alone does not batch objects.
+- Both pictures are SVG diagrams, not renderer output captures. They use the same coordinates; line styling and vertex dots differ. We are not claiming identical pixels or a measured speedup.
+- When D3 code updates a path's `d`, it serializes numeric coordinates into a string. SVG can also animate transforms or styles without rebuilding path text.
+- The browser receives the DOM attribute, parses the path, and rebuilds its rendering data.
+- BufferGeometry stores vertex positions in typed arrays/BufferAttributes instead of path text.
+- BufferGeometry alone does not batch separate meshes. A compatible single-material batch can make one draw per pass; groups, materials, and extra passes can add more.
+- Groups or multiple materials add draw calls.
+- The GPU still processes the vertices. Numeric buffers can avoid path-string work; fewer draw submissions require compatible batching as well.
+- This is an optimization for many related vertices, not a reason to replace every small or independent SVG path.
+-->
+
+---
+class: handoff-slide practical-guidance-slide
+---
+
+# Profiling in Chrome DevTools
+
+<figure class="m-0">
+  <img
+    class="profile-toolbar"
+    src="/images/devtools-performance-toolbar.png"
+    alt="Chromium DevTools toolbar: 1 marks the Performance tab, 2 the Record button, and 3 the Save profile down-arrow."
+  />
+</figure>
+
+<div class="grid grid-cols-3 gap-3 mt-3">
+  <section class="svg-demo-panel">
+    <h2>1 · Open Performance</h2>
+    <p>Open DevTools → Performance.<br>Fix the data, view, and settings before recording.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>2 · Record → inspect</h2>
+    <p>Record → drag + select → stop.<br>Select the drag; inspect Frames, Main, then Bottom-up.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>3 · Save profile ↓</h2>
+    <p>Export the JSON trace.<br>Note the build, viewport/DPR, throttling, and exact steps.</p>
+  </section>
+</div>
+
+<figure class="profile-hotspot">
+  <figcaption>SVG refactor · measured hotspot · call-path sketch, not a flame chart</figcaption>
+  <div class="profile-call-path">
+    <code>renderFrame</code> → <code>render</code> → <mark><code>updateBackgroundElements</code></mark>
+  </div>
+  <p><strong>≈99.3% of sampled render time:</strong> background projection, clipping, and path generation.</p>
+  <p><strong>22.6 ms</strong> average drag callback &gt; <strong>16.7 ms</strong> total frame budget at 60 Hz.</p>
+</figure>
+
+<!--
+- Use the supplied numbered toolbar screenshot to point out Performance (1), Record (2), and Save profile (3). The image is cropped to the toolbar; its original LCP/CLS/INP cards are not evidence for drag performance. The supplied screenshot is from Brave's Chromium DevTools; Chrome uses the same panel, but toolbar placement/labels can vary by version.
+- Open DevTools through the browser menu or Ctrl+Shift+I on Windows/Linux, Command+Option+I on macOS. Select Performance, start recording, repeat a short map drag and a selection, and stop. Do not substitute a page-reload recording for the interaction we are investigating.
+- After stopping, select a drag range in the overview. For a saved example, load svg-updated.json.gz and select approximately 1.567–2.795 s from the recording start. Examine Frames for gaps/long frames and Main for the work around the drag. Select the corresponding main-thread range for Bottom-up; sort by Total time to find expensive functions including their descendants. Self time excludes those descendants. Call tree shows the caller chain. Do not add nested durations.
+- Follow renderFrame → render → updateBackgroundElements. This is a labeled call-path illustration backed by the captured source and sample analysis, not a fabricated DevTools screenshot or a time-scaled flame chart. Source: performance-profiling/three-way-comparison.md, interactive SVG-refactor capture. Background generation accounts for approximately 5,089 / 5,124 ms of sampled inclusive render time across that capture, not just the first drag. The 22.6 ms mean callback is across all five drag windows (239 callbacks), not a single selected call or complete GPU/display frame time.
+- Distinguish JavaScript projection/path generation from style, layout, and paint. Here the remaining hotspot is background generation, not the number of event markers. The earlier SVG refactor already corrected tick-node churn, dropped drag deltas, and broad redraw triggers while retaining geographic detail.
+- A callback below the >50 ms long-task threshold can still exceed the entire 16.7 ms budget at 60 Hz. Timer waits and scheduling gaps can also produce jank while the main thread is idle. Check forced layout and allocation/GC churn as hypotheses, not proof that every Paint or GC event is a bug.
+- Save profile (down-arrow) exports the trace; Load profile (up-arrow), or dragging the exported file into Performance, reopens it. Save a short companion note with the exact gesture/selection sequence, data and starting view, build/revision, viewport/DPR, motion, extensions, and CPU/network throttling. Record without breakpoints and keep these conditions fixed for a repeatable comparison. Separate profiler startup from application stalls.
+- Inspect exported profiles before sharing: they can embed screenshots, URLs, and application source. Raw captures remain local; the deck packages only this cropped toolbar image and the existing reports. These historical recordings are a case study, not a controlled benchmark.
+- Reference: https://developer.chrome.com/docs/devtools/performance/reference
+-->
+
+---
+class: handoff-slide practical-guidance-slide
+---
+
+# Performance Checklist
+
+<div class="grid grid-cols-2 gap-3">
+  <section class="svg-demo-panel">
+    <h2>1 · Identify the bottleneck</h2>
+    <p>Measure the actual interaction. Separate JavaScript, layout/paint, and GPU work.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>2 · Batch repeated marks</h2>
+    <p>Use instances or shared geometry where materials and drawing passes permit.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>3 · Reuse buffers</h2>
+    <p>Update existing attributes; upload only what changed. Avoid rebuilding every frame.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>4 · Draw only useful detail</h2>
+    <p>Check geometry detail, pixel ratio, and transparent overdraw. Preserve the visual task.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>5 · Stop unnecessary work</h2>
+    <p>Render on change when possible. Stop settled simulations and hidden/unmounted work.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>6 · Recheck responsiveness</h2>
+    <p>Repeat the same task. Check frame pacing, input-to-display delay, and memory over time.</p>
+  </section>
+</div>
+
+<div class="guidance-takeaway">Change one thing → repeat the workload → compare the result.</div>
+
+<!--
+- Start with the user's task, not a preferred renderer or a universal node-count threshold. The case study shows both an SVG optimization win and a further implementation-level gain from the rewrite; it is not an isolated SVG-versus-WebGL benchmark.
+- Use the main-thread trace to distinguish expensive JS from browser style/layout/paint. A short JS callback does not establish low GPU cost. For pixel-bound scenes, vary resolution, transparency, and pass count while observing frame pacing; change one variable at a time. Main-thread Paint duration is not a complete GPU measurement.
+- InstancedMesh helps repeated geometry/material combinations; merged geometry can help compatible marks. BufferGeometry alone does not batch separate objects. Material groups, shadows, and extra rendering/picking passes can add draw calls. Draw-call count alone is not a performance result.
+- Reuse attribute and instance-matrix buffers when capacity permits. Mark changed attributes for upload; use update ranges where appropriate instead of uploading large unchanged arrays. Stable D3 joins and targeted application watches are the analogous reduction of unnecessary work in the SVG version.
+- Reduce detail only where it preserves what the audience needs to see: LOD, appropriate device pixel ratio, and less overlapping transparency can help different bottlenecks. Do not silently discard meaningful data. Our in-place SVG refactor retained full geographic detail; representation changes were a separate step.
+- requestAnimationFrame schedules work; it does not make an expensive callback cheap. Coalesce dirty updates, stop a force simulation when it cools, and suspend work when the view is inactive. Continuous animation still needs frames while active. Teardown must release owned GPU resources as shown earlier.
+- Repeat drag, selection, and keyboard tasks with fixed data/settings. Compare frame pacing and input-to-presentation behavior separately; callback duration is neither. Use repeated runs and inspect tails rather than only averages. Look for retained-memory growth over repeated create/destroy cycles; one heap peak or compressed trace size does not prove a leak or a saving, and JS heap excludes GPU memory.
+- Keep the before/after images and interaction behavior as checks: faster but incorrect, less informative, or inaccessible is not the same improvement.
+-->
+
+---
+class: handoff-slide practical-guidance-slide
+---
+
+# Accessibility Beyond the Canvas
+
+<div class="grid grid-cols-2 gap-4">
+  <section class="svg-demo-panel">
+    <h2>Expose the data</h2>
+    <p>Offer an equivalent table or list with labels, units, and a summary. Do not rely on color alone.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>Support the keyboard</h2>
+    <p>Use labeled native controls. Make pan, zoom, selection, and dismissal reachable without a pointer.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>Describe the selection</h2>
+    <p>Share the selected record ID. Show a visual highlight and meaningful text; announce deliberate selection changes.</p>
+  </section>
+  <section class="svg-demo-panel">
+    <h2>Keep focus and motion usable</h2>
+    <p>Show visible focus; never trap it. Honor reduced motion and offer pause for nonessential animation.</p>
+  </section>
+</div>
+
+<div class="guidance-takeaway">Pointer / keyboard / data list → selected ID → highlight + text details</div>
+
+<!--
+- WebGL pixels do not expose individual records as semantic DOM elements. A label on the canvas can describe its purpose, but does not make all plotted data or interactions accessible. Keep semantic controls, summaries, and record details in HTML, owned by the application.
+- Offer an equivalent route to the same filtered data and actions: a table or list with meaningful names, units, sorting/filtering, and selection. Paginate or otherwise manage large lists; do not add tens of thousands of tab stops or invisible DOM nodes just to mirror every GPU mark. A CSV download can supplement this, not replace an operable in-app alternative.
+- Use native buttons, inputs, and selects where possible. Make keyboard operation discoverable, preserve a logical focus order and visible focus indicator, and provide an escape from any custom interaction. Offer alternatives to pointer-only pan/zoom/dragging and hover-only information. Support zoom and sufficient contrast; pair color encodings with text, shape, or another distinguishable cue.
+- Pointer picking, keyboard selection, and the equivalent data view should all update the same selected record ID. Resolve it to a record and update both its visual highlight and an HTML description. An appropriately scoped role="status" or polite live region can announce committed selection changes; do not announce animation frames or every hover pixel. Keep focus predictable when data changes or a detail panel closes.
+- The later GPU-picking demo illustrates the ID → record boundary and keyboard scan/lock controls. It is not a claim of complete accessibility: an equivalent data view and assistive-technology testing are still application responsibilities. Avoid announcing bare RGB values when a record name/value communicates the user's selection.
+- Honor prefers-reduced-motion on entry and when the preference changes. Prefer instant updates or reduced transitions while preserving the selected state and useful controls. Offer pause for nonessential continuous motion; do not rely solely on an OS preference. The earlier synthetic force demo settles immediately under reduced motion rather than removing the data.
+- These are implementation guidelines, not an accessibility certification of this deck or the case-study application. Test with a keyboard and screen reader, at zoom, and with reduced motion; actual presentation-device rehearsal and the full demo audit remain separate checklist work.
+- References: https://www.w3.org/WAI/tutorials/images/complex/ and https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
+-->
+
+---
+
+# D3/Three.js Features
+
+sefsef
+
+---
 class: demo-slide instancing-slide
 ---
 
 # InstancedMesh: Share the Shape
 
-<div class="demo-kind">Illustration</div>
+<div class="demo-kind">Feature</div>
 <div class="demo-lead">Draw repeated marks with fewer submissions to the GPU.</div>
 
 <div class="instancing-scene-stage demo-stage demo-dark">
@@ -2529,435 +2759,209 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-class: demo-slide buffer-geometry-slide
+class: handoff-slide d3-handoff-slide demo-slide force-layout-slide
 ---
 
-# BufferGeometry: Work with Numbers
+# D3 Can Compute the Layout, Too
 
-<div class="demo-kind">Diagram</div>
-<div class="demo-lead">When coordinates change, update numbers instead of rebuilding path text.</div>
+<div class="demo-kind">Feature</div>
+<div class="demo-lead">Draw repeated marks with fewer submissions to the GPU.</div>
 
-<div class="buffer-comparison demo-stage">
-  <div class="buffer-lane buffer-lane--svg">
-    <div class="buffer-lane-heading">
-      <div class="buffer-eyebrow">SVG PATH ANIMATION</div>
-      <h2>D3 → DOM → parser</h2>
-    </div>
-    <div class="buffer-flow">
-      <div class="buffer-step buffer-step--string"><code>d="M…"</code><small>serialize text</small></div><span class="buffer-arrow">→</span><div class="buffer-step"><strong>Browser</strong><small>parse + paint</small></div>
-    </div>
-    <div class="buffer-plot">
-      <div class="buffer-plot-label">Coordinates encoded as path text</div>
-      <svg viewBox="0 0 264 100" role="img" aria-label="A line encoded as an SVG path string">
-        <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
-        <path class="buffer-svg-path" d="M12 75 L35 48 L58 64 L81 36 L105 66 L129 26 L153 55 L178 31 L204 58 L230 21 L252 32" />
-      </svg>
-    </div>
-    <div class="buffer-cost">Update <code>d</code> when coordinates change.</div>
+<div class="force-layout-grid">
+<div>
+
+<h2 class="font-bold text-blue-900">On each D3 simulation tick</h2>
+
+<<< @/slides.md#force-upload js
+
+<div class="mt-5 text-lg"><strong>D3’s simulation still runs on the CPU.</strong></div>
+<div class="mt-3 text-base text-slate-600">Colors stay with the nodes. Regroup changes which cluster each node moves toward.</div>
+<div class="mt-4 text-base font-semibold">320 nodes · one position buffer</div>
+
+</div>
+<div>
+  <div class="force-layout-stage" role="img" aria-label="320 synthetic nodes in four clusters. Regroup switches from category-based targets to an alternate grouping key; node colors do not change.">
+    <svg v-if="!ready" class="force-layout-fallback" viewBox="0 0 640 400" aria-hidden="true">
+      <circle v-for="(node, i) in previewNodes" :key="i" :cx="node.x" :cy="node.y" r="2.8" :fill="node.color" />
+    </svg>
+    <div ref="sceneHost" class="force-layout-canvas" aria-hidden="true"></div>
   </div>
-  <div class="buffer-lane buffer-lane--buffer">
-    <div class="buffer-lane-heading">
-      <div class="buffer-eyebrow">BUFFERGEOMETRY</div>
-      <h2>Numbers → GPU buffer</h2>
+  <div class="force-layout-controls">
+    <button type="button" :disabled="!ready" @click="regroup">Regroup</button>
+    <div class="force-layout-status" role="status" aria-live="polite">
+      <template v-if="error">{{ error }}</template>
+      <template v-else-if="ready">{{ mixed ? 'Alternate key' : 'Category' }} · {{ settled ? 'settled' : 'settling…' }}<span v-if="reducedMotion"> · reduced motion</span></template>
+      <template v-else>Static preview · 80 nodes per category</template>
     </div>
-    <div class="buffer-flow">
-      <div class="buffer-step buffer-step--array"><code>Float32Array</code><small>position data</small></div><span class="buffer-arrow">→</span><div class="buffer-step buffer-step--geometry"><strong>GPU</strong><small>draw vertices</small></div>
-    </div>
-    <div class="buffer-plot">
-      <div class="buffer-plot-label">The same coordinates as vertices</div>
-      <svg viewBox="0 0 264 100" role="img" aria-label="A line made from numeric vertices">
-        <path class="buffer-grid-line" d="M 12 12 H 252 M 12 34 H 252 M 12 56 H 252 M 12 78 H 252" />
-        <polyline class="buffer-buffer-path" points="12,75 35,48 58,64 81,36 105,66 129,26 153,55 178,31 204,58 230,21 252,32" />
-        <g class="buffer-vertices"><circle cx="12" cy="75" r="3" /><circle cx="35" cy="48" r="3" /><circle cx="58" cy="64" r="3" /><circle cx="81" cy="36" r="3" /><circle cx="105" cy="66" r="3" /><circle cx="129" cy="26" r="3" /><circle cx="153" cy="55" r="3" /><circle cx="178" cy="31" r="3" /><circle cx="204" cy="58" r="3" /><circle cx="230" cy="21" r="3" /><circle cx="252" cy="32" r="3" /></g>
-      </svg>
-    </div>
-    <div class="buffer-cost">Upload changed numeric attributes.</div>
   </div>
 </div>
-
-<div class="demo-takeaway">Use buffers for vertex data. Batching separate objects is a separate decision.</div>
-
-<style>
-.buffer-geometry-slide {
-  background: #f8fafc;
-  color: #0f172a;
-  justify-content: flex-start;
-  overflow: hidden;
-}
-
-.buffer-geometry-slide h1 {
-  color: #0f172a;
-}
-
-.buffer-claim {
-  color: #334155;
-  font-size: 1.55rem;
-  letter-spacing: 0.01em;
-  margin-top: 4.35rem;
-  text-align: center;
-}
-
-.buffer-claim strong:first-child {
-  color: #ea580c;
-}
-
-.buffer-claim strong:last-child {
-  color: #2563eb;
-}
-
-.buffer-comparison {
-  display: grid;
-  flex: 1;
-  gap: 1rem;
-  grid-template-columns: 1fr 1fr;
-  margin-top: 1rem;
-  min-height: 0;
-  width: 100%;
-}
-
-.buffer-lane {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  border-radius: 1rem;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-  display: flex;
-  flex-direction: column;
-  min-height: 18rem;
-  padding: 1rem 1.1rem 0.85rem;
-}
-
-.buffer-lane--svg {
-  border-top: 4px solid #f97316;
-}
-
-.buffer-lane--buffer {
-  border-top: 4px solid #2563eb;
-}
-
-.buffer-lane-heading {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: column;
-}
-
-.buffer-eyebrow {
-  color: #64748b;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-}
-
-.buffer-lane h2 {
-  color: #1e293b;
-  font-size: 1.15rem;
-  margin: 0.15rem 0 0;
-}
-
-.buffer-flow {
-  align-items: stretch;
-  display: flex;
-  gap: 0.35rem;
-  margin-top: 1rem;
-  min-height: 3.8rem;
-}
-
-.buffer-step {
-  align-items: center;
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 0.55rem;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  padding: 0.4rem 0.3rem;
-  text-align: center;
-}
-
-.buffer-step strong,
-.buffer-step code {
-  color: #1e293b;
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.buffer-step code {
-  background: transparent;
-  font-size: 0.68rem;
-  overflow: hidden;
-  padding: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
-}
-
-.buffer-step small {
-  color: #64748b;
-  font-size: 0.58rem;
-  margin-top: 0.2rem;
-  white-space: nowrap;
-}
-
-.buffer-step--string {
-  background: #fff7ed;
-  border-color: #fdba74;
-}
-
-.buffer-step--string code {
-  color: #c2410c;
-}
-
-.buffer-step--array,
-.buffer-step--geometry {
-  background: #eff6ff;
-  border-color: #93c5fd;
-}
-
-.buffer-step--array code,
-.buffer-step--geometry strong {
-  color: #1d4ed8;
-}
-
-.buffer-arrow {
-  align-self: center;
-  color: #94a3b8;
-  font-size: 1.1rem;
-  line-height: 1;
-}
-
-.buffer-plot {
-  background: #0f172a;
-  border-radius: 0.75rem;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  margin-top: 0.85rem;
-  min-height: 0;
-  padding: 0.55rem 0.7rem 0.65rem;
-}
-
-.buffer-plot-label {
-  color: #94a3b8;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.buffer-plot svg {
-  display: block;
-  flex: 1;
-  height: 100%;
-  min-height: 0;
-  width: 100%;
-}
-
-.buffer-grid-line {
-  fill: none;
-  stroke: #334155;
-  stroke-width: 0.7;
-}
-
-.buffer-svg-path {
-  fill: none;
-  stroke: #fb923c;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 3;
-}
-
-.buffer-buffer-path {
-  fill: none;
-  stroke: #60a5fa;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
-
-.buffer-vertices circle {
-  fill: #bfdbfe;
-  stroke: #2563eb;
-  stroke-width: 1;
-}
-
-.buffer-cost {
-  align-items: baseline;
-  border-top: 1px solid #e2e8f0;
-  color: #64748b;
-  display: flex;
-  gap: 0.35rem;
-  margin-top: 0.7rem;
-  padding-top: 0.55rem;
-}
-
-.buffer-cost strong {
-  font-size: 1.3rem;
-}
-
-.buffer-cost--svg strong {
-  color: #ea580c;
-}
-
-.buffer-cost--buffer strong {
-  color: #16a34a;
-}
-
-.buffer-summary {
-  color: #64748b;
-  font-size: 0.9rem;
-  margin: 0.7rem auto 0.15rem;
-  text-align: center;
-}
-
-.buffer-summary strong {
-  color: #334155;
-}
-</style>
-
-<!--
-- Goal: avoid repeated coordinate-to-text updates. Show: trace the same eleven coordinates through each lane; no control interaction is needed. Use: numeric vertex data. Limit: BufferGeometry alone does not batch objects.
-- Both pictures are SVG diagrams, not renderer output captures. They use the same coordinates; line styling and vertex dots differ. We are not claiming identical pixels or a measured speedup.
-- When D3 code updates a path's `d`, it serializes numeric coordinates into a string. SVG can also animate transforms or styles without rebuilding path text.
-- The browser receives the DOM attribute, parses the path, and rebuilds its rendering data.
-- BufferGeometry stores vertex positions in typed arrays/BufferAttributes instead of path text.
-- BufferGeometry alone does not batch separate meshes. A compatible single-material batch can make one draw per pass; groups, materials, and extra passes can add more.
-- Groups or multiple materials add draw calls.
-- The GPU still processes the vertices. Numeric buffers can avoid path-string work; fewer draw submissions require compatible batching as well.
-- This is an optimization for many related vertices, not a reason to replace every small or independent SVG path.
--->
-
----
-class: handoff-slide practical-guidance-slide
----
-
-# Profiling in Chrome DevTools
-
-<figure class="m-0">
-  <img
-    class="profile-toolbar"
-    src="/images/devtools-performance-toolbar.png"
-    alt="Chromium DevTools toolbar: 1 marks the Performance tab, 2 the Record button, and 3 the Save profile down-arrow."
-  />
-</figure>
-
-<div class="grid grid-cols-3 gap-3 mt-3">
-  <section class="svg-demo-panel">
-    <h2>1 · Open Performance</h2>
-    <p>Open DevTools → Performance.<br>Fix the data, view, and settings before recording.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>2 · Record → inspect</h2>
-    <p>Record → drag + select → stop.<br>Select the drag; inspect Frames, Main, then Bottom-up.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>3 · Save profile ↓</h2>
-    <p>Export the JSON trace.<br>Note the build, viewport/DPR, throttling, and exact steps.</p>
-  </section>
 </div>
 
-<figure class="profile-hotspot">
-  <figcaption>SVG refactor · measured hotspot · call-path sketch, not a flame chart</figcaption>
-  <div class="profile-call-path">
-    <code>renderFrame</code> → <code>render</code> → <mark><code>updateBackgroundElements</code></mark>
-  </div>
-  <p><strong>≈99.3% of sampled render time:</strong> background projection, clipping, and path generation.</p>
-  <p><strong>22.6 ms</strong> average drag callback &gt; <strong>16.7 ms</strong> total frame budget at 60 Hz.</p>
-</figure>
+<div class="mt-4 text-base font-semibold text-blue-900">D3 updates positions → buffer changes → GPU draws nodes.</div>
+
+<script setup>
+import * as THREE from 'three'
+import { forceCollide, forceSimulation, forceX, forceY } from 'd3'
+import { nextTick, onBeforeUnmount, ref } from 'vue'
+import { onSlideEnter, onSlideLeave, useIsSlideActive, useNav, useSlideContext } from '@slidev/client'
+
+const sceneHost = ref(null)
+const ready = ref(false), settled = ref(false), mixed = ref(false), reducedMotion = ref(false)
+const error = ref('')
+const active = useIsSlideActive()
+const { isPrintMode } = useNav()
+const { $renderContext: renderContext } = useSlideContext()
+const count = 320
+const palette = ['#38bdf8', '#f472b6', '#fbbf24', '#34d399']
+const targets = [[-150, 85], [150, 85], [-150, -85], [150, -85]]
+// ponytail: static preview illustrates the clusters, not exact solver output; capture a live frame if pixel matching matters.
+const previewNodes = Array.from({ length: count }, (_, i) => {
+  const n = Math.floor(i / 4), angle = n * Math.PI * (3 - Math.sqrt(5)), radius = 4.4 * Math.sqrt(n)
+  const [x, y] = targets[i % 4]
+  return { x: 320 + x + Math.cos(angle) * radius, y: 200 - y + Math.sin(angle) * radius, color: palette[i % 4] }
+})
+let renderer, scene, camera, geometry, material, positions, simulation, resizeObserver, events, preference
+let nodes = [] // Plain objects: D3 ticks never mutate Vue's reactive state.
+
+function draw() {
+  if (!renderer) return
+  // #region force-upload
+  nodes.forEach((node, i) => {
+    positions.setXYZ(i, node.x, node.y, 0)
+  })
+  positions.needsUpdate = true
+  renderer.render(scene, camera)
+  // #endregion
+}
+
+function run() {
+  if (!simulation || document.hidden) return
+  simulation.stop()
+  if (reducedMotion.value) {
+    const ticks = Math.ceil(Math.log(simulation.alphaMin()) / Math.log(1 - simulation.alphaDecay()))
+    simulation.tick(ticks) // Manual ticks don't dispatch D3's tick/end events.
+    draw()
+    settled.value = true
+  } else if (simulation.alpha() >= simulation.alphaMin()) {
+    settled.value = false
+    simulation.restart()
+  }
+}
+
+function retarget() {
+  const group = node => mixed.value ? Math.floor(node.id / 4) % 4 : node.id % 4
+  simulation.force('x', forceX(node => targets[group(node)][0]).strength(0.14))
+  simulation.force('y', forceY(node => targets[group(node)][1]).strength(0.14))
+  simulation.alpha(1)
+  run()
+}
+
+function regroup() {
+  if (!simulation) return
+  mixed.value = !mixed.value
+  retarget()
+}
+
+function resize() {
+  if (!renderer || !sceneHost.value) return
+  const width = sceneHost.value.clientWidth, height = sceneHost.value.clientHeight
+  if (!width || !height) return
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+  renderer.setSize(width, height, false)
+  camera.left = -200 * width / height
+  camera.right = 200 * width / height
+  camera.updateProjectionMatrix()
+  draw()
+}
+
+function disposeScene() {
+  simulation?.stop()
+  simulation?.on('tick', null).on('end', null)
+  resizeObserver?.disconnect()
+  events?.abort()
+  geometry?.dispose()
+  material?.dispose()
+  renderer?.dispose()
+  renderer?.forceContextLoss()
+  renderer?.domElement.remove()
+  renderer = scene = camera = geometry = material = positions = simulation = resizeObserver = events = preference = undefined
+  nodes = []
+  ready.value = false
+}
+
+function createScene() {
+  if (renderer || !sceneHost.value) return
+  error.value = ''
+  mixed.value = false
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setClearColor(0x0f172a)
+    sceneHost.value.appendChild(renderer.domElement)
+    scene = new THREE.Scene()
+    camera = new THREE.OrthographicCamera(-320, 320, 200, -200, 0.1, 100)
+    camera.position.z = 10
+    nodes = Array.from({ length: count }, (_, id) => ({ id }))
+    positions = new THREE.BufferAttribute(new Float32Array(count * 3), 3)
+    positions.setUsage(THREE.DynamicDrawUsage)
+    geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', positions)
+    const colors = new Float32Array(count * 3)
+    nodes.forEach((node, i) => new THREE.Color(palette[node.id % 4]).toArray(colors, i * 3))
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    material = new THREE.PointsMaterial({ size: 5, vertexColors: true, sizeAttenuation: false })
+    const points = new THREE.Points(geometry, material)
+    points.frustumCulled = false // Positions change without recomputing a bounding sphere.
+    scene.add(points)
+    simulation = forceSimulation(nodes).stop()
+      .alphaDecay(0.05)
+      .force('collide', forceCollide(5))
+      .on('tick', draw)
+      .on('end', () => { settled.value = true })
+    events = new AbortController()
+    preference = window.matchMedia('(prefers-reduced-motion: reduce)')
+    reducedMotion.value = preference.matches
+    preference.addEventListener('change', event => {
+      reducedMotion.value = event.matches
+      run()
+    }, { signal: events.signal })
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) simulation?.stop()
+      else run()
+    }, { signal: events.signal })
+    renderer.domElement.addEventListener('webglcontextlost', event => {
+      event.preventDefault()
+      disposeScene()
+      error.value = 'WebGL unavailable · static illustration shown'
+    }, { signal: events.signal })
+    resizeObserver = new ResizeObserver(resize)
+    resizeObserver.observe(sceneHost.value)
+    ready.value = true
+    resize()
+    retarget()
+  } catch (cause) {
+    disposeScene()
+    error.value = 'WebGL unavailable · static illustration shown'
+    console.warn('Force demo could not initialize', cause)
+  }
+}
+
+onSlideEnter(async () => {
+  await nextTick()
+  if (active.value && !isPrintMode.value && ['slide', 'presenter'].includes(renderContext.value)) createScene()
+})
+onSlideLeave(disposeScene)
+onBeforeUnmount(disposeScene)
+</script>
 
 <!--
-- Use the supplied numbered toolbar screenshot to point out Performance (1), Record (2), and Save profile (3). The image is cropped to the toolbar; its original LCP/CLS/INP cards are not evidence for drag performance. The supplied screenshot is from Brave's Chromium DevTools; Chrome uses the same panel, but toolbar placement/labels can vary by version.
-- Open DevTools through the browser menu or Ctrl+Shift+I on Windows/Linux, Command+Option+I on macOS. Select Performance, start recording, repeat a short map drag and a selection, and stop. Do not substitute a page-reload recording for the interaction we are investigating.
-- After stopping, select a drag range in the overview. For a saved example, load svg-updated.json.gz and select approximately 1.567–2.795 s from the recording start. Examine Frames for gaps/long frames and Main for the work around the drag. Select the corresponding main-thread range for Bottom-up; sort by Total time to find expensive functions including their descendants. Self time excludes those descendants. Call tree shows the caller chain. Do not add nested durations.
-- Follow renderFrame → render → updateBackgroundElements. This is a labeled call-path illustration backed by the captured source and sample analysis, not a fabricated DevTools screenshot or a time-scaled flame chart. Source: performance-profiling/three-way-comparison.md, interactive SVG-refactor capture. Background generation accounts for approximately 5,089 / 5,124 ms of sampled inclusive render time across that capture, not just the first drag. The 22.6 ms mean callback is across all five drag windows (239 callbacks), not a single selected call or complete GPU/display frame time.
-- Distinguish JavaScript projection/path generation from style, layout, and paint. Here the remaining hotspot is background generation, not the number of event markers. The earlier SVG refactor already corrected tick-node churn, dropped drag deltas, and broad redraw triggers while retaining geographic detail.
-- A callback below the >50 ms long-task threshold can still exceed the entire 16.7 ms budget at 60 Hz. Timer waits and scheduling gaps can also produce jank while the main thread is idle. Check forced layout and allocation/GC churn as hypotheses, not proof that every Paint or GC event is a bug.
-- Save profile (down-arrow) exports the trace; Load profile (up-arrow), or dragging the exported file into Performance, reopens it. Save a short companion note with the exact gesture/selection sequence, data and starting view, build/revision, viewport/DPR, motion, extensions, and CPU/network throttling. Record without breakpoints and keep these conditions fixed for a repeatable comparison. Separate profiler startup from application stalls.
-- Inspect exported profiles before sharing: they can embed screenshots, URLs, and application source. Raw captures remain local; the deck packages only this cropped toolbar image and the existing reports. These historical recordings are a case study, not a controlled benchmark.
-- Reference: https://developer.chrome.com/docs/devtools/performance/reference
--->
-
----
-class: handoff-slide practical-guidance-slide
----
-
-# Performance Checklist
-
-<div class="grid grid-cols-2 gap-3">
-  <section class="svg-demo-panel">
-    <h2>1 · Identify the bottleneck</h2>
-    <p>Measure the actual interaction. Separate JavaScript, layout/paint, and GPU work.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>2 · Batch repeated marks</h2>
-    <p>Use instances or shared geometry where materials and drawing passes permit.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>3 · Reuse buffers</h2>
-    <p>Update existing attributes; upload only what changed. Avoid rebuilding every frame.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>4 · Draw only useful detail</h2>
-    <p>Check geometry detail, pixel ratio, and transparent overdraw. Preserve the visual task.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>5 · Stop unnecessary work</h2>
-    <p>Render on change when possible. Stop settled simulations and hidden/unmounted work.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>6 · Recheck responsiveness</h2>
-    <p>Repeat the same task. Check frame pacing, input-to-display delay, and memory over time.</p>
-  </section>
-</div>
-
-<div class="guidance-takeaway">Change one thing → repeat the workload → compare the result.</div>
-
-<!--
-- Start with the user's task, not a preferred renderer or a universal node-count threshold. The case study shows both an SVG optimization win and a further implementation-level gain from the rewrite; it is not an isolated SVG-versus-WebGL benchmark.
-- Use the main-thread trace to distinguish expensive JS from browser style/layout/paint. A short JS callback does not establish low GPU cost. For pixel-bound scenes, vary resolution, transparency, and pass count while observing frame pacing; change one variable at a time. Main-thread Paint duration is not a complete GPU measurement.
-- InstancedMesh helps repeated geometry/material combinations; merged geometry can help compatible marks. BufferGeometry alone does not batch separate objects. Material groups, shadows, and extra rendering/picking passes can add draw calls. Draw-call count alone is not a performance result.
-- Reuse attribute and instance-matrix buffers when capacity permits. Mark changed attributes for upload; use update ranges where appropriate instead of uploading large unchanged arrays. Stable D3 joins and targeted application watches are the analogous reduction of unnecessary work in the SVG version.
-- Reduce detail only where it preserves what the audience needs to see: LOD, appropriate device pixel ratio, and less overlapping transparency can help different bottlenecks. Do not silently discard meaningful data. Our in-place SVG refactor retained full geographic detail; representation changes were a separate step.
-- requestAnimationFrame schedules work; it does not make an expensive callback cheap. Coalesce dirty updates, stop a force simulation when it cools, and suspend work when the view is inactive. Continuous animation still needs frames while active. Teardown must release owned GPU resources as shown earlier.
-- Repeat drag, selection, and keyboard tasks with fixed data/settings. Compare frame pacing and input-to-presentation behavior separately; callback duration is neither. Use repeated runs and inspect tails rather than only averages. Look for retained-memory growth over repeated create/destroy cycles; one heap peak or compressed trace size does not prove a leak or a saving, and JS heap excludes GPU memory.
-- Keep the before/after images and interaction behavior as checks: faster but incorrect, less informative, or inaccessible is not the same improvement.
--->
-
----
-class: handoff-slide practical-guidance-slide
----
-
-# Accessibility Beyond the Canvas
-
-<div class="grid grid-cols-2 gap-4">
-  <section class="svg-demo-panel">
-    <h2>Expose the data</h2>
-    <p>Offer an equivalent table or list with labels, units, and a summary. Do not rely on color alone.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>Support the keyboard</h2>
-    <p>Use labeled native controls. Make pan, zoom, selection, and dismissal reachable without a pointer.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>Describe the selection</h2>
-    <p>Share the selected record ID. Show a visual highlight and meaningful text; announce deliberate selection changes.</p>
-  </section>
-  <section class="svg-demo-panel">
-    <h2>Keep focus and motion usable</h2>
-    <p>Show visible focus; never trap it. Honor reduced motion and offer pause for nonessential animation.</p>
-  </section>
-</div>
-
-<div class="guidance-takeaway">Pointer / keyboard / data list → selected ID → highlight + text details</div>
-
-<!--
-- WebGL pixels do not expose individual records as semantic DOM elements. A label on the canvas can describe its purpose, but does not make all plotted data or interactions accessible. Keep semantic controls, summaries, and record details in HTML, owned by the application.
-- Offer an equivalent route to the same filtered data and actions: a table or list with meaningful names, units, sorting/filtering, and selection. Paginate or otherwise manage large lists; do not add tens of thousands of tab stops or invisible DOM nodes just to mirror every GPU mark. A CSV download can supplement this, not replace an operable in-app alternative.
-- Use native buttons, inputs, and selects where possible. Make keyboard operation discoverable, preserve a logical focus order and visible focus indicator, and provide an escape from any custom interaction. Offer alternatives to pointer-only pan/zoom/dragging and hover-only information. Support zoom and sufficient contrast; pair color encodings with text, shape, or another distinguishable cue.
-- Pointer picking, keyboard selection, and the equivalent data view should all update the same selected record ID. Resolve it to a record and update both its visual highlight and an HTML description. An appropriately scoped role="status" or polite live region can announce committed selection changes; do not announce animation frames or every hover pixel. Keep focus predictable when data changes or a detail panel closes.
-- The later GPU-picking demo illustrates the ID → record boundary and keyboard scan/lock controls. It is not a claim of complete accessibility: an equivalent data view and assistive-technology testing are still application responsibilities. Avoid announcing bare RGB values when a record name/value communicates the user's selection.
-- Honor prefers-reduced-motion on entry and when the preference changes. Prefer instant updates or reduced transitions while preserving the selected state and useful controls. Offer pause for nonessential continuous motion; do not rely solely on an OS preference. The earlier synthetic force demo settles immediately under reduced motion rather than removing the data.
-- These are implementation guidelines, not an accessibility certification of this deck or the case-study application. Test with a keyboard and screen reader, at zoom, and with reduced motion; actual presentation-device rehearsal and the full demo audit remain separate checklist work.
-- References: https://www.w3.org/WAI/tutorials/images/complex/ and https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
+- Planned 60–90-second delivery: (0–20s) establish the synthetic data and CPU/GPU boundary; (20–40s) let the four category clusters settle and point out the shared position buffer; (40–65s) press Regroup once and watch the same colored records follow a different grouping key; (65–80s) trace tick → numeric buffer → render, then state the limitation. Rehearsal must confirm the actual delivery time.
+- There are 320 synthetic records, four original categories of 80, and four targets. Regroup switches between id % 4 and floor(id / 4) % 4. Color stays tied to the original category; the alternate layout mixes colors rather than changing the underlying records.
+- forceX/forceY pull nodes toward targets; forceCollide separates them. Replacing the position forces refreshes D3's cached targets, and alpha(1).restart() reheats the existing simulation. We keep the same node objects, geometry, and position buffer across regrouping.
+- D3 owns the CPU simulation timer. Its tick callback writes a Three.js BufferAttribute; needsUpdate schedules an upload, and renderer.render submits the points. There is no second perpetual requestAnimationFrame loop and no Vue update for each node on each tick.
+- Use this pattern when a CPU layout algorithm produces positions for a renderer. WebGL does not move D3's force solver onto the GPU; a larger or more expensive simulation can still block the main thread. This scene illustrates architecture, not a performance threshold or benchmark.
+- The simulation cools and stops on its own. Leaving the slide stops it immediately and releases observers, listeners, geometry, material, and renderer. Hidden documents pause it. Reduced motion settles synchronously and renders once; Regroup still works without an animated transition.
+- Print, overview, and inactive previews show a clearly labeled static SVG illustration, not a live WebGL simulation. The same illustration is available if WebGL initialization fails or its context is lost.
+- There are deliberately no edges, dragging, or physics sliders. One planned interaction is enough to demonstrate the handoff.
 -->
 
 
@@ -2965,9 +2969,9 @@ class: handoff-slide practical-guidance-slide
 class: demo-slide entry-exit-slide
 ---
 
-# Help People Follow Entry and Exit
+# Entry and Exit Animations
 
-<div class="demo-kind">Synthetic example</div>
+<div class="demo-kind">Presentation</div>
 <div class="demo-lead">Make it clear which records arrived and which ones left.</div>
 
 <div class="entry-exit-layout demo-stage">
@@ -3370,9 +3374,9 @@ onSlideLeave(disposeScene)
 class: demo-slide physical-properties-slide
 ---
 
-# Choose How to Show a Value
+# Tie Data to Observable Properties
 
-<div class="demo-kind">Synthetic example</div>
+<div class="demo-kind">Presentation</div>
 <div class="demo-lead">Keep each record’s position. Change how its value looks.</div>
 
 <div class="physical-layout demo-stage">
@@ -3814,7 +3818,7 @@ class: demo-slide staggering-slide
 
 # Guide Attention with Timing
 
-<div class="demo-kind">Synthetic example</div>
+<div class="demo-kind">Presentation</div>
 <div class="demo-lead">The same entry animation, with a small delay between records.</div>
 
 <div class="stagger-stage demo-stage demo-dark">
@@ -4204,9 +4208,9 @@ onSlideLeave(disposeScene)
 class: demo-slide idle-motion-slide
 ---
 
-# Keep Data Positions Still
+# Add Visual Interest to Idle Elements
 
-<div class="demo-kind">Synthetic example</div>
+<div class="demo-kind">Presentation</div>
 <div class="demo-lead">Decorative rotation is optional. Moving a plotted position can suggest a new value.</div>
 
 <div class="idle-stage demo-stage demo-dark">
@@ -4532,18 +4536,12 @@ onSlideLeave(disposeScene)
 -->
 
 ---
-
-# What Else Can Three.js Do?
-
-The renderer opens the door to a broader set of GPU-powered tools.
-
----
 class: demo-slide billboard-slide
 ---
 
 # Keep Images Facing the Camera
 
-<div class="demo-kind">Illustration</div>
+<div class="demo-kind">Feature</div>
 <div class="demo-lead">Billboards keep icons readable as the viewing angle changes.</div>
 
 <div
@@ -4965,7 +4963,7 @@ class: demo-slide shader-slide
 
 # Shaders: Apply a Rule in Parallel
 
-<div class="demo-kind">Illustration</div>
+<div class="demo-kind">Feature</div>
 <div class="demo-lead">Vertex shaders change geometry. Fragment shaders color the surface.</div>
 
 <div class="shader-stage demo-stage">
@@ -5375,7 +5373,7 @@ class: demo-slide lod-slide
 
 # LOD: Match Detail to the View
 
-<div class="demo-kind">Illustration</div>
+<div class="demo-kind">Feature</div>
 <div class="demo-lead">Level of detail lets you use a simpler mesh when extra detail stops helping.</div>
 
 <div class="lod-stage demo-stage">
@@ -5875,7 +5873,7 @@ class: demo-slide texture-size-slide
 
 # Textures: Upload the Detail You Need
 
-<div class="demo-kind">Illustration</div>
+<div class="demo-kind">Feature</div>
 <div class="demo-lead">A small on-screen image can still use a large texture allocation.</div>
 
 <div class="texture-stage demo-stage demo-dark">
@@ -6303,7 +6301,7 @@ class: demo-slide particles-slide
 
 # Points: Many Marks, One Object
 
-<div class="demo-kind">Stylized illustration</div>
+<div class="demo-kind">Feature</div>
 <div class="demo-lead">Draw up to 100,000 particles without creating a mesh for each one.</div>
 
 <div class="particles-stage demo-stage">
@@ -6884,7 +6882,7 @@ class: demo-slide gpu-pick-slide
 
 # GPU Picking: Find the Record
 
-<div class="demo-kind">Synthetic example</div>
+<div class="demo-kind">Feature</div>
 <div class="demo-lead">Draw IDs offscreen. Read the cursor pixel to find its record.</div>
 
 <div class="gpu-pick-shell demo-stage">
