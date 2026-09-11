@@ -210,7 +210,8 @@
   width: 100%;
 }
 .three-demo-canvas { background: var(--talk-stage); position: relative; overflow: hidden; }
-.three-demo-canvas canvas { display: block; width: 100%; height: 100%; }
+/* Three.js creates canvases outside Vue's scoped CSS; fit HiDPI buffers to their hosts. */
+.slidev-layout canvas { display: block; width: 100%; height: 100%; }
 .slidev-layout.demo-slide .svg-demo-code { background: var(--talk-stage); color: #e2e8f0; border-radius: 0.6rem; flex: 1; min-height: 0; overflow: auto; padding: 0.8rem; font: 14px/1.5 var(--slidev-code-font-family); white-space: pre-wrap; overflow-wrap: anywhere; }
 .svg-token-tag { color: #f9a8d4; }
 .svg-token-attribute { color: #7dd3fc; }
