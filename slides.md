@@ -7680,25 +7680,7 @@ onSlideLeave(disposeGpuPickScene)
 - Dispose both materials, shared geometry, marker geometry, render target, and renderer when leaving the slide.
 -->
 
----
-class: stay-in-touch-slide
----
 
-# Stay in Touch
-
-<div class="stay-in-touch-content">
-  <div class="stay-in-touch-copy">
-    <p>I would love to keep in touch!</p>
-    <ul>
-      <li><a href="https://jbeers.github.io">jbeers.github.io</a></li>
-      <li><a href="https://x.com/jtbeers">x.com/jtbeers</a></li>
-      <li><a href="https://linkedin.com/in/jacob-beers-dev/">linkedin.com/in/jacob-beers-dev</a></li>
-    </ul>
-  </div>
-  <img class="stay-in-touch-image" src="/images/pic.png" alt="Illustration of Jacob Beers" />
-</div>
-
-<!-- Speaker input pending: add approved contact links before presenting. -->
 
 ---
 class: explore-slide
@@ -7764,3 +7746,33 @@ class: explore-slide
 </div>
 
 <!-- Images pending: add one supplied image to each exploration column. -->
+
+---
+
+<img
+  src="/images/sponsor_slide.png"
+  class="absolute inset-0 h-full w-full object-contain"
+  alt="KCDC sponsors"
+/>
+
+---
+class: stay-in-touch-slide
+---
+
+# Thanks! Stay in touch!
+
+<div class="stay-in-touch-content">
+  <div class="stay-in-touch-copy">
+    <p>My Internet hangouts</p>
+    <ul>
+      <li><a href="https://jbeers.github.io">jbeers.github.io</a></li>
+      <li><a href="https://x.com/jtbeers">x.com/jtbeers</a></li>
+      <li><a href="https://linkedin.com/in/jacob-beers-dev/">linkedin.com/in/jacob-beers-dev</a></li>
+    </ul>
+  </div>
+  <img class="stay-in-touch-image" src="/images/pic.png" alt="Illustration of Jacob Beers" />
+</div>
+
+<!--
+Speaker input pending: add approved contact links before presenting.
+-->
